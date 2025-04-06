@@ -7,6 +7,7 @@ import { Login } from './pages/Login';
 import Signup from './pages/Signup';
 import Users from './pages/admin/Users';
 import Roles from './pages/admin/Roles';
+import Departments from './pages/admin/Departments';
 import AdminDashboard from './pages/admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -41,6 +42,7 @@ function App() {
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<Users />} />
                     <Route path="roles" element={<Roles />} />
+                    <Route path="departments" element={<Departments />} />
                     <Route path="reports" element={<div>Reports Coming Soon</div>} />
                     <Route path="settings" element={<div>Settings Coming Soon</div>} />
                   </Routes>
