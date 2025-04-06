@@ -6,6 +6,7 @@ import ProjectFair from './pages/ProjectFair';
 import { Login } from './pages/Login';
 import Signup from './pages/Signup';
 import Users from './pages/admin/Users';
+import AdminDashboard from './pages/admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -28,7 +29,7 @@ function App() {
             }>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="project-fair" element={
+              <Route path="project-fair/*" element={
                 <ProtectedRoute allowedRoles={['student', 'faculty', 'admin', 'jury']}>
                   <ProjectFair />
                 </ProtectedRoute>
@@ -36,8 +37,10 @@ function App() {
               <Route path="admin/*" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <Routes>
-                    <Route index element={<div>Admin Dashboard</div>} />
+                    <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<Users />} />
+                    <Route path="reports" element={<div>Reports Coming Soon</div>} />
+                    <Route path="settings" element={<div>Settings Coming Soon</div>} />
                   </Routes>
                 </ProtectedRoute>
               } />

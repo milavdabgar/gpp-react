@@ -11,15 +11,16 @@ const ProjectFair: React.FC = () => {
 
   // Render appropriate component based on user role
   const renderComponent = () => {
-    switch (user?.selectedRole) {
-      case 'admin':
-        return <ProjectFairAdmin />;
-      case 'jury':
-        return <JuryEvaluation />;
-      case 'student':
-        return <ProjectFairStudent />;
-      default:
-        return <ProjectRegistrationForm />;
+    if (!user || !user.roles) return <ProjectRegistrationForm />;
+    
+    if (user.roles.includes('admin')) {
+      return <ProjectFairAdmin />;
+    } else if (user.roles.includes('jury')) {
+      return <JuryEvaluation />;
+    } else if (user.roles.includes('student')) {
+      return <ProjectFairStudent />;
+    } else {
+      return <ProjectRegistrationForm />;
     }
   };
 

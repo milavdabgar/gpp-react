@@ -39,7 +39,7 @@ const AppLayout: React.FC = () => {
       { name: 'Dashboard', icon: Home, id: 'dashboard' },
       { name: 'User Management', icon: Users, id: 'users' },
       { name: 'Departments', icon: Layers, id: 'departments' },
-      { name: 'Project Fair Admin', icon: Award, id: 'project-admin', highlight: true },
+      { name: 'Project Fair Admin', icon: Award, id: 'project-fair', highlight: true },
       { name: 'Settings', icon: Settings, id: 'settings' },
     ],
     hod: [
@@ -72,6 +72,8 @@ const AppLayout: React.FC = () => {
         navigate('/admin/users');
       } else if (id === 'dashboard') {
         navigate('/admin');
+      } else if (id === 'project-fair') {
+        navigate('/project-fair');
       } else {
         navigate(`/admin/${id}`);
       }
