@@ -121,13 +121,26 @@ export const facultyApi = {
   },
 
   createFaculty: async (facultyData: {
-    userId: string;
+    name: string;
+    email: string;
     employeeId: string;
     designation: string;
     departmentId: string;
     joiningDate: string;
-  }): Promise<ApiResponse<{ faculty: any }>> => {
-    const response = await api.post<ApiResponse<{ faculty: any }>>('/faculty', facultyData);
+    specializations?: string[];
+    qualifications?: {
+      degree: string;
+      field: string;
+      institution: string;
+      year: number;
+    }[];
+    status?: string;
+    experience?: {
+      years: number;
+      details: string;
+    };
+  }) => {
+    const response = await api.post<ApiResponse<{ faculty: any; password: string }>>('/faculty', facultyData);
     return response.data;
   },
 

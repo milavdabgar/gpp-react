@@ -202,9 +202,11 @@ const Faculty = () => {
               continue;
             }
             
-            // TypeScript type assertion since we've already filtered for valid departments
+            // Create faculty with user details and default password
             const newFaculty = {
-              userId: user._id,
+              name: user.name,
+              email: user.email,
+              password: 'Faculty@123', // Default password for bulk upload
               employeeId: `F${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
               designation: 'Assistant Professor',
               departmentId: user.department as string,
@@ -213,11 +215,14 @@ const Faculty = () => {
               specializations: ['General'],
               qualifications: [{
                 degree: 'Ph.D.',
-                field: 'Engineering',
-                institution: 'To be updated',
+                field: 'General',
+                institution: 'Institution Pending',
                 year: new Date().getFullYear()
               }],
-              experience: 0
+              experience: {
+                years: 0,
+                details: 'New faculty member'
+              }
             };
             await facultyApi.createFaculty(newFaculty);
           } catch (error) {
@@ -745,8 +750,10 @@ const Faculty = () => {
                 const selectedSpecializations = Array.from(e.currentTarget.specializations.selectedOptions).map(option => (option as HTMLOptionElement).value);
                 const selectedQualifications = Array.from(e.currentTarget.qualifications.selectedOptions).map(option => (option as HTMLOptionElement).value);
 
-                const faculty: CreateFacultyDto = {
-                  userId: formData.get('userId')?.toString() || '',
+                const faculty = {
+                  name: formData.get('name')?.toString() || '',
+                  email: formData.get('email')?.toString() || '',
+                  password: formData.get('password')?.toString() || '',
                   employeeId: formData.get('employeeId')?.toString() || '',
                   designation: formData.get('designation')?.toString() || '',
                   departmentId: formData.get('departmentId')?.toString() || '',
@@ -754,8 +761,8 @@ const Faculty = () => {
                   specializations: selectedSpecializations,
                   qualifications: selectedQualifications.map(q => ({
                     degree: q,
-                    field: '',
-                    institution: '',
+                    field: 'General',
+                    institution: 'Institution Pending',
                     year: new Date().getFullYear()
                   })),
                   status: formData.get('status')?.toString() || 'active',
@@ -764,8 +771,12 @@ const Faculty = () => {
                     details: formData.get('details')?.toString() || ''
                   }
                 };
-                await facultyApi.createFaculty(faculty);
-                showToast('Faculty member created successfully', 'success');
+                const result = await facultyApi.createFaculty(faculty);
+                const password = result.data.password;
+                showToast(
+                  `Faculty member created successfully. Login credentials sent to ${faculty.email}. Temporary password: ${password}`,
+                  'success'
+                );
                 setShowAddModal(false);
                 fetchFacultyData();
               } catch (error) {
@@ -773,30 +784,62 @@ const Faculty = () => {
                 showToast('Failed to create faculty member', 'error');
               }
             }} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Department</label>
-                <select
-                  name="departmentId"
-                  defaultValue={selectedFaculty?.department?._id || ''}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Employee ID</label>
-                <input
-                  type="text"
-                  name="employeeId"
-                  defaultValue={selectedFaculty?.employeeId}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Department</label>
+                  <select
+                    name="departmentId"
+                    defaultValue={selectedFaculty?.department?._id || ''}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map(dept => (
+                      <option key={dept._id} value={dept._id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                  <input
+                    type="text"
+                    name="employeeId"
+                    defaultValue={selectedFaculty?.employeeId}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               <div>
