@@ -6,6 +6,7 @@ import ProjectFair from './pages/ProjectFair';
 import { Login } from './pages/Login';
 import Signup from './pages/Signup';
 import Users from './pages/admin/Users';
+import Roles from './pages/admin/Roles';
 import AdminDashboard from './pages/admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -39,6 +40,7 @@ function App() {
                   <Routes>
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<Users />} />
+                    <Route path="roles" element={<Roles />} />
                     <Route path="reports" element={<div>Reports Coming Soon</div>} />
                     <Route path="settings" element={<div>Settings Coming Soon</div>} />
                   </Routes>

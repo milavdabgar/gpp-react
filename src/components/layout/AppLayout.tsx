@@ -38,6 +38,7 @@ const AppLayout: React.FC = () => {
     admin: [
       { name: 'Dashboard', icon: Home, id: 'dashboard' },
       { name: 'User Management', icon: Users, id: 'users' },
+      { name: 'Role Management', icon: Users, id: 'roles' },
       { name: 'Departments', icon: Layers, id: 'departments' },
       { name: 'Project Fair Admin', icon: Award, id: 'project-fair', highlight: true },
       { name: 'Settings', icon: Settings, id: 'settings' },
