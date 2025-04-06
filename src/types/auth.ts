@@ -1,5 +1,14 @@
 export type Role = 'student' | 'faculty' | 'hod' | 'principal' | 'admin' | 'jury';
 
+export interface RoleWithPermissions {
+  id: string;
+  name: Role;
+  description: string;
+  permissions: ('create' | 'read' | 'update' | 'delete')[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: string;
   name: string;

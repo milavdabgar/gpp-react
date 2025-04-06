@@ -45,54 +45,16 @@ const Roles: React.FC = () => {
       if (!response.ok) {
         throw new Error('Failed to fetch roles');
       }
-      const data = await response.json();
-      // Initialize with some default roles if empty
-      if (!data.data?.roles || data.data.roles.length === 0) {
-        const defaultRoles = [
-          {
-            _id: '1',
-            name: 'Admin',
-            description: 'Full system access',
-            permissions: ['create', 'read', 'update', 'delete'],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            _id: '2',
-            name: 'User',
-            description: 'Basic user access',
-            permissions: ['read'],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ];
-        setRoles(defaultRoles);
+      const { status, data } = await response.json();
+      if (status === 'success' && Array.isArray(data.roles)) {
+        setRoles(data.roles);
       } else {
-        setRoles(data.data.roles);
+        throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('Error fetching roles:', error);
       showToast('Error fetching roles', 'error');
-      // Set some default roles for demo
-      const defaultRoles = [
-        {
-          _id: '1',
-          name: 'Admin',
-          description: 'Full system access',
-          permissions: ['create', 'read', 'update', 'delete'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          name: 'User',
-          description: 'Basic user access',
-          permissions: ['read'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      setRoles(defaultRoles);
+      setRoles([]);
     } finally {
       setIsLoading(false);
     }
@@ -112,14 +74,14 @@ const Roles: React.FC = () => {
         body: JSON.stringify(updatedRole)
       });
 
-      if (response.ok) {
-        const { data } = await response.json();
+      const { status, data } = await response.json();
+      if (status === 'success' && data.role) {
         setRoles(roles.map(r => r._id === data.role._id ? data.role : r));
         setShowEditModal(false);
         setSelectedRole(null);
         showToast('Role updated successfully', 'success');
       } else {
-        showToast('Failed to update role', 'error');
+        throw new Error('Failed to update role');
       }
     } catch (error) {
       console.error('Error updating role:', error);
@@ -158,17 +120,13 @@ const Roles: React.FC = () => {
         body: JSON.stringify(roleData)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to add role');
-      }
-
-      const { data } = await response.json();
-      if (data && data.role) {
+      const { status, data } = await response.json();
+      if (status === 'success' && data.role) {
         setRoles([...roles, data.role]);
         setShowAddModal(false);
         showToast('Role added successfully', 'success');
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('Failed to add role');
       }
     } catch (error) {
       console.error('Error adding role:', error);

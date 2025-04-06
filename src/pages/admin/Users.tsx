@@ -421,7 +421,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
     department: user.department || '',
     roles: user.roles
   });
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
 
   useEffect(() => {
     // Fetch available roles
@@ -431,8 +431,17 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
       }
     })
       .then(res => res.json())
-      .then(data => setAvailableRoles(data.data.roles))
-      .catch(console.error);
+      .then(data => {
+        if (data.status === 'success' && Array.isArray(data.data.roles)) {
+          // Extract just the role names
+          const roleNames = data.data.roles.map((role: { name: string }) => role.name as Role);
+          setAvailableRoles(roleNames);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching roles:', error);
+        setAvailableRoles([]);
+      });
   }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -487,12 +496,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                   <label key={role} className="inline-flex items-center mr-4">
                     <input
                       type="checkbox"
-                      checked={formData.roles.includes(role as Role)}
+                      checked={formData.roles.includes(role)}
                       onChange={(e) => {
                         const newRoles = e.target.checked
-                          ? [...formData.roles, role as Role]
-                          : formData.roles.filter((r: Role) => r !== role);
-                        setFormData({ ...formData, roles: newRoles as Role[] });
+                          ? [...formData.roles, role]
+                          : formData.roles.filter(r => r !== role);
+                        setFormData({ ...formData, roles: newRoles });
                       }}
                       className="form-checkbox h-4 w-4 text-indigo-600"
                     />
