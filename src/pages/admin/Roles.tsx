@@ -246,139 +246,238 @@ const Roles: React.FC = () => {
   };
 
   // Filter and sort roles
-  const filteredAndSortedRoles = roles
-    .filter(role => 
-      (role.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (role.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    )
+  const filteredAndSortedRoles = [...roles]
+    .filter((role) => {
+      const searchTermLower = searchTerm.toLowerCase();
+      return (
+        role.name.toLowerCase().includes(searchTermLower) ||
+        role.description.toLowerCase().includes(searchTermLower)
+      );
+    })
     .sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-      const modifier = sortOrder === 'asc' ? 1 : -1;
-      return aValue > bValue ? modifier : -modifier;
+      let aValue = '';
+      let bValue = '';
+      
+      switch (sortField) {
+        case 'name':
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case 'description':
+          aValue = a.description;
+          bValue = b.description;
+          break;
+        case 'createdAt':
+          aValue = a.createdAt;
+          bValue = b.createdAt;
+          break;
+      }
+
+      return sortOrder === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Role Management</h1>
-        <div className="flex gap-2">
-          <label className="btn btn-primary">
-            <Upload className="w-4 h-4 mr-2" />
+        <h1 className="text-2xl font-semibold text-gray-900">Role Management</h1>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center gap-2"
+          >
+            Add Role
+          </button>
+          <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <Upload className="h-4 w-4 mr-2" />
             Import CSV
             <input
               type="file"
-              accept=".csv"
               className="hidden"
+              accept=".csv"
               onChange={handleImport}
             />
           </label>
           <button
-            className="btn btn-primary flex items-center"
             onClick={handleExport}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="h-4 w-4 mr-2" />
             Export CSV
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowAddModal(true)}
-          >
-            Add Role
           </button>
         </div>
       </div>
 
-      <div className="mb-4 flex items-center">
+      <div className="mb-6">
         <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
             type="text"
             placeholder="Search roles..."
-            className="input input-bordered w-full pl-10"
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="table w-full">
-          <thead>
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
               <th
-                className="cursor-pointer"
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center">
                   Name
                   {sortField === 'name' && (
-                    sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    <span className="ml-2">
+                      {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </span>
                   )}
                 </div>
               </th>
               <th
-                className="cursor-pointer"
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('description')}
               >
                 <div className="flex items-center">
                   Description
                   {sortField === 'description' && (
-                    sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    <span className="ml-2">
+                      {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </span>
                   )}
                 </div>
               </th>
               <th
-                className="cursor-pointer"
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Permissions
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('createdAt')}
               >
                 <div className="flex items-center">
                   Created At
                   {sortField === 'createdAt' && (
-                    sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                    <span className="ml-2">
+                      {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </span>
                   )}
                 </div>
               </th>
-              <th>Actions</th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="text-center">Loading...</td>
+                <td colSpan={5} className="px-6 py-8 text-center">
+                  <div className="flex justify-center items-center space-x-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                    <span className="text-sm text-gray-500">Loading roles...</span>
+                  </div>
+                </td>
               </tr>
             ) : filteredAndSortedRoles.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center">No roles found</td>
+                <td colSpan={5} className="px-6 py-8 text-center">
+                  <div className="text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No roles found</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {searchTerm ? 'Try adjusting your search term' : 'Get started by creating a new role'}
+                    </p>
+                    <div className="mt-6">
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <svg
+                          className="-ml-1 mr-2 h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Add Role
+                      </button>
+                    </div>
+                  </div>
+                </td>
               </tr>
             ) : (
               filteredAndSortedRoles.map((role) => (
-                <tr key={role._id}>
-                  <td className="px-4 py-2">{role.name || 'N/A'}</td>
-                  <td className="px-4 py-2">{role.description || 'No description'}</td>
-                  <td className="px-4 py-2">
+                <tr key={role._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {role.name || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {role.description || 'No description'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {role.permissions.map((permission) => (
+                        <span
+                          key={permission}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {permission}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {role.createdAt ? new Date(role.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="flex gap-2">
-                      <button
-                        className="btn btn-sm btn-ghost"
-                        onClick={() => {
-                          setSelectedRole(role);
-                          setShowEditModal(true);
-                        }}
-                        title="Edit role"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-ghost text-error"
-                        onClick={() => handleDelete(role._id)}
-                        title="Delete role"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                    <button
+                      onClick={() => {
+                        setSelectedRole(role);
+                        setShowEditModal(true);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-900 transition-colors duration-200"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(role._id)}
+                      className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
                   </td>
                 </tr>
               ))
