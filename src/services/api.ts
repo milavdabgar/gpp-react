@@ -180,12 +180,12 @@ export const facultyApi = {
 
 export const studentApi = {
   exportStudentsCsv: async () => {
-    const response = await api.get<Blob>('/students/export', { responseType: 'blob' });
+    const response = await api.get<Blob>('/student/export-csv', { responseType: 'blob' });
     return response;
   },
 
   uploadStudentsCsv: async (formData: FormData) => {
-    const response = await api.post<ApiResponse<{ message: string }>>('/students/upload', formData, {
+    const response = await api.post<ApiResponse<{ message: string }>>('/student/upload-csv', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -194,32 +194,32 @@ export const studentApi = {
   },
 
   getAllStudents: async () => {
-    const response = await api.get<ApiResponse<{ students: Student[] }>>('/students');
+    const response = await api.get<ApiResponse<{ students: Student[] }>>('/student');
     return response.data;
   },
 
   getStudent: async (id: string) => {
-    const response = await api.get<ApiResponse<{ student: Student }>>(`/students/${id}`);
+    const response = await api.get<ApiResponse<{ student: Student }>>(`/student/${id}`);
     return response.data;
   },
 
   createStudent: async (studentData: CreateStudentDto & { name?: string; email?: string; password?: string }) => {
-    const response = await api.post<ApiResponse<{ student: Student }>>('/students', studentData);
+    const response = await api.post<ApiResponse<{ student: Student }>>('/student', studentData);
     return response.data;
   },
 
   updateStudent: async (id: string, studentData: Partial<CreateStudentDto>) => {
-    const response = await api.patch<ApiResponse<{ student: Student }>>(`/students/${id}`, studentData);
+    const response = await api.patch<ApiResponse<{ student: Student }>>(`/student/${id}`, studentData);
     return response.data;
   },
 
   deleteStudent: async (id: string) => {
-    const response = await api.delete<ApiResponse<{ student: Student }>>(`/students/${id}`);
+    const response = await api.delete<ApiResponse<{ student: Student }>>(`/student/${id}`);
     return response.data;
   },
 
   getStudentsByDepartment: async (departmentId: string) => {
-    const response = await api.get<ApiResponse<{ students: Student[] }>>(`/students/department/${departmentId}`);
+    const response = await api.get<ApiResponse<{ students: Student[] }>>(`/student/department/${departmentId}`);
     return response.data;
   },
 };
