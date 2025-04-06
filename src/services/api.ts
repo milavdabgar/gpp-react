@@ -180,12 +180,14 @@ export const facultyApi = {
 
 export const studentApi = {
   exportStudentsCsv: async () => {
-    const response = await api.get<Blob>('/student/export-csv', { responseType: 'blob' });
+    const response = await api.get('/students/export-csv', {
+      responseType: 'blob',
+    });
     return response;
   },
 
   uploadStudentsCsv: async (formData: FormData) => {
-    const response = await api.post<ApiResponse<{ message: string }>>('/student/upload-csv', formData, {
+    const response = await api.post<ApiResponse<{ message: string }>>('/students/upload-csv', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
