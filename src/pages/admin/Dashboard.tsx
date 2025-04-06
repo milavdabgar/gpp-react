@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Award, Settings, FileText } from 'lucide-react';
+import { Users, Award, Settings, FileText, GraduationCap } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const menuItems = [
@@ -9,6 +9,12 @@ const AdminDashboard: React.FC = () => {
       description: 'Manage users, roles, and permissions',
       icon: <Users className="w-6 h-6" />,
       link: '/admin/users'
+    },
+    {
+      title: 'Faculty Management',
+      description: 'Manage faculty members and their details',
+      icon: <GraduationCap className="w-6 h-6" />,
+      link: '/admin/faculties'
     },
     {
       title: 'Project Fair',
