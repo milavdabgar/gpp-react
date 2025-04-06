@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Download, Upload, Edit, Trash2, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -14,10 +15,15 @@ interface AdminUser {
   selectedRole: Role;
 }
 
+type SortField = 'name' | 'email' | 'department';
+type SortOrder = 'asc' | 'desc';
+
 const Users: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -181,15 +187,33 @@ const Users: React.FC = () => {
     }
   };
 
-  // Filter users based on search term
-  const filteredUsers = users.filter((user: AdminUser) => {
-    const searchTermLower = searchTerm.toLowerCase();
-    return (
-      (user.name || '').toLowerCase().includes(searchTermLower) ||
-      (user.email || '').toLowerCase().includes(searchTermLower) ||
-      (user.department || '').toLowerCase().includes(searchTermLower)
-    );
-  });
+  // Handle sort click
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Filter and sort users
+  const filteredUsers = users
+    .filter((user: AdminUser) => {
+      const searchTermLower = searchTerm.toLowerCase();
+      return (
+        (user.name || '').toLowerCase().includes(searchTermLower) ||
+        (user.email || '').toLowerCase().includes(searchTermLower) ||
+        (user.department || '').toLowerCase().includes(searchTermLower)
+      );
+    })
+    .sort((a, b) => {
+      const aValue = (a[sortField] || '').toLowerCase();
+      const bValue = (b[sortField] || '').toLowerCase();
+      return sortOrder === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
 
   return (
     <div className="p-6">
@@ -242,9 +266,39 @@ const Users: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-1">
+                  Name
+                  {sortField === 'name' && (
+                    sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('email')}
+              >
+                <div className="flex items-center gap-1">
+                  Email
+                  {sortField === 'email' && (
+                    sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('department')}
+              >
+                <div className="flex items-center gap-1">
+                  Department
+                  {sortField === 'department' && (
+                    sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
