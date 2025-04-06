@@ -12,6 +12,7 @@ interface User {
   name: string;
   email: string;
   roles?: string[];
+  department?: string;
 }
 
 interface Department {
@@ -21,7 +22,7 @@ interface Department {
 
 interface CreateFacultyDto {
   userId: string;
-  department: string;
+  departmentId: string;
   employeeId: string;
   designation: string;
   specializations?: string[];
@@ -74,7 +75,38 @@ const Faculty = () => {
     setIsLoading(true);
     try {
       const response = await api.get<{ status: string; data: { users: User[] } }>('/admin/users');
-      setUsers(response.data.data.users.filter(user => user.roles?.includes('faculty')));
+      console.log('Users response:', response);
+      const facultyUsers = response.data.data.users.filter(user => user.roles?.includes('faculty'));
+      console.log('Faculty users:', facultyUsers);
+      setUsers(facultyUsers);
+      
+      // Create faculty entries for users who don't have one
+      const facultyResponse = await facultyApi.getAllFaculty();
+      console.log('Existing faculty:', facultyResponse);
+      const existingFacultyUserIds = facultyResponse.data.faculty.map(f => f.userId?._id);
+      console.log('Existing faculty user IDs:', existingFacultyUserIds);
+      
+      for (const user of facultyUsers) {
+        if (!existingFacultyUserIds.includes(user._id)) {
+          try {
+            console.log('Creating faculty entry for user:', user);
+            const newFaculty = {
+              userId: user._id,
+              employeeId: user._id.substring(0, 8), // Generate a temporary employee ID
+              designation: 'Assistant Professor', // Default designation
+              departmentId: user.department || '', // Use user's department if available
+              joiningDate: new Date().toISOString().split('T')[0] // Current date as joining date
+            };
+            console.log('New faculty data:', newFaculty);
+            const result = await facultyApi.createFaculty(newFaculty);
+            console.log('Create faculty result:', result);
+          } catch (error) {
+            console.error('Error creating faculty entry:', error);
+          }
+        }
+      }
+      
+      await fetchFaculty(); // Refresh faculty list
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -100,6 +132,7 @@ const Faculty = () => {
     setIsLoading(true);
     try {
       const response = await facultyApi.getAllFaculty();
+      console.log('Faculty response:', response);
       setFaculty(response.data.faculty);
     } catch (error) {
       console.error('Error fetching faculty:', error);
@@ -351,7 +384,7 @@ const Faculty = () => {
                   userId: formData.get('userId')?.toString() || '',
                   employeeId: formData.get('employeeId')?.toString() || '',
                   designation: formData.get('designation')?.toString() || '',
-                  department: formData.get('departmentId')?.toString() || '',
+                  departmentId: formData.get('departmentId')?.toString() || '',
                   joiningDate: formData.get('joiningDate')?.toString() || '',
                   specializations: formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(s => s) || [],
                   qualifications: formData.get('qualifications')?.toString().split(',').map(q => q.trim()).filter(q => q) || [],

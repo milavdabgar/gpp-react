@@ -5,12 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Role } from '../../types/auth';
 
+interface Department {
+  _id: string;
+  name: string;
+}
+
 interface AdminUser {
   // MongoDB document ID
   _id: string;
   name: string;
   email: string;
-  department?: string;
+  department?: string; // This will store the department ID
   roles: Role[];
   selectedRole: Role;
 }
@@ -422,8 +427,25 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
     roles: user.roles
   });
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
+    // Fetch departments
+    fetch('http://localhost:9000/api/departments', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          setDepartments(data.data.departments);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching departments:', error);
+      });
+
     // Fetch available roles
     fetch('http://localhost:9000/api/admin/roles', {
       headers: {
@@ -482,12 +504,18 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Department</label>
-              <input
-                type="text"
+              <select
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              />
+              >
+                <option value="">Select Department</option>
+                {departments.map(dept => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Roles</label>

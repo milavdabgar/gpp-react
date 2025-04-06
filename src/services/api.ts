@@ -108,7 +108,7 @@ export const facultyApi = {
     userId: string;
     employeeId: string;
     designation: string;
-    department: string;
+    departmentId: string;
     joiningDate: string;
   }): Promise<ApiResponse<{ faculty: any }>> => {
     const response = await api.post<ApiResponse<{ faculty: any }>>('/faculty', facultyData);
