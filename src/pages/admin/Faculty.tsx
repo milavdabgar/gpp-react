@@ -563,6 +563,8 @@ const Faculty = () => {
                 );
 
                 const updatedFaculty = {
+                  name: formData.get('name')?.toString() || '',
+                  email: formData.get('email')?.toString() || '',
                   employeeId: formData.get('employeeId')?.toString() || '',
                   designation: formData.get('designation')?.toString() || '',
                   departmentId: formData.get('departmentId')?.toString() || '',
@@ -599,6 +601,29 @@ const Faculty = () => {
                 showToast('Failed to update faculty member', 'error');
               }
             }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={selectedFaculty.user?.name || ''}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    defaultValue={selectedFaculty.user?.email || ''}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Department</label>
                 <select
@@ -748,44 +773,6 @@ const Faculty = () => {
             <form onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
-              try {
-                const selectedSpecializations = Array.from(e.currentTarget.specializations.selectedOptions).map(option => (option as HTMLOptionElement).value);
-                const selectedQualifications = Array.from(e.currentTarget.qualifications.selectedOptions).map(option => (option as HTMLOptionElement).value);
-
-                const faculty = {
-                  name: formData.get('name')?.toString() || '',
-                  email: formData.get('email')?.toString() || '',
-                  password: formData.get('password')?.toString() || '',
-                  employeeId: formData.get('employeeId')?.toString() || '',
-                  designation: formData.get('designation')?.toString() || '',
-                  departmentId: formData.get('departmentId')?.toString() || '',
-                  joiningDate: formData.get('joiningDate')?.toString() || '',
-                  specializations: selectedSpecializations,
-                  qualifications: selectedQualifications.map(q => ({
-                    degree: q,
-                    field: 'General',
-                    institution: 'Institution Pending',
-                    year: new Date().getFullYear()
-                  })),
-                  status: formData.get('status')?.toString() || 'active',
-                  experience: {
-                    years: parseInt(formData.get('years')?.toString() || '0'),
-                    details: formData.get('details')?.toString() || ''
-                  }
-                };
-                const result = await facultyApi.createFaculty(faculty);
-                const password = result.data.password;
-                showToast(
-                  `Faculty member created successfully. Login credentials sent to ${faculty.email}. Temporary password: ${password}`,
-                  'success'
-                );
-                setShowAddModal(false);
-                fetchFacultyData();
-              } catch (error: any) {
-                console.error('Error creating faculty:', error);
-                const errorMessage = error.response?.data?.message || 'Failed to create faculty member';
-                showToast(errorMessage, 'error');
-              }
             }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
