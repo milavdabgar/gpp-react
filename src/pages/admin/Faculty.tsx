@@ -91,6 +91,43 @@ const Faculty = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedFaculty, setSelectedFaculty] = useState<FacultyWithDetails | null>(null);
+
+  const designationOptions = [
+    'Lecturer',
+    'Senior Lecturer',
+    'Selection Grade Lecturer',
+    'Assistant Professor',
+    'Associate Professor',
+    'Professor',
+    'HOD',
+    'Principal',
+    'Dean'
+  ];
+
+  const qualificationOptions = [
+    'Ph.D',
+    'M.Tech',
+    'B.Tech',
+    'MCA',
+    'BCA',
+    'M.Sc',
+    'B.Sc',
+    'MBA'
+  ];
+
+  const specializationOptions = [
+    'General',
+    'Computer Science',
+    'Information Technology',
+    'Software Engineering',
+    'Data Science',
+    'Artificial Intelligence',
+    'Machine Learning',
+    'Web Development',
+    'Database Systems',
+    'Computer Networks',
+    'Cybersecurity'
+  ];
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -446,13 +483,16 @@ const Faculty = () => {
               try {
                 if (!selectedFaculty._id) throw new Error('No faculty ID');
 
+                const selectedSpecializations = Array.from(e.currentTarget.specializations.selectedOptions).map(option => (option as HTMLOptionElement).value);
+                const selectedQualifications = Array.from(e.currentTarget.qualifications.selectedOptions).map(option => (option as HTMLOptionElement).value);
+
                 const updatedFaculty = {
                   employeeId: formData.get('employeeId')?.toString() || '',
                   designation: formData.get('designation')?.toString() || '',
                   departmentId: formData.get('departmentId')?.toString() || '',
                   joiningDate: formData.get('joiningDate')?.toString() || '',
-                  specializations: formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(s => s) || [],
-                  qualifications: (formData.get('qualifications')?.toString() || '').split(',').map(q => q.trim()).filter(q => q).map(q => ({
+                  specializations: selectedSpecializations,
+                  qualifications: selectedQualifications.map(q => ({
                     degree: q,
                     field: '',
                     institution: '',
@@ -503,13 +543,17 @@ const Faculty = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Designation</label>
-                <input
-                  type="text"
+                <select
                   name="designation"
                   defaultValue={selectedFaculty.designation}
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select Designation</option>
+                  {designationOptions.map(designation => (
+                    <option key={designation} value={designation}>{designation}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -537,24 +581,33 @@ const Faculty = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Specializations (comma-separated)</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-gray-700">Specializations</label>
+                <select
+                  multiple
                   name="specializations"
-                  defaultValue={selectedFaculty.specializations?.join(', ')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                  defaultValue={selectedFaculty.specializations || []}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-32"
+                >
+                  {specializationOptions.map(spec => (
+                    <option key={spec} value={spec}>{spec}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd to select multiple</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Qualifications (comma-separated degrees)</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-gray-700">Qualifications</label>
+                <select
+                  multiple
                   name="qualifications"
-                  defaultValue={selectedFaculty.qualifications?.map(q => q.degree).join(', ')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="e.g. B.Tech, M.Tech, Ph.D"
-                />
+                  defaultValue={selectedFaculty.qualifications?.map(q => q.degree) || []}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-32"
+                >
+                  {qualificationOptions.map(qual => (
+                    <option key={qual} value={qual}>{qual}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd to select multiple</p>
               </div>
 
               <div>
@@ -612,14 +665,17 @@ const Faculty = () => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               try {
+                const selectedSpecializations = Array.from(e.currentTarget.specializations.selectedOptions).map(option => (option as HTMLOptionElement).value);
+                const selectedQualifications = Array.from(e.currentTarget.qualifications.selectedOptions).map(option => (option as HTMLOptionElement).value);
+
                 const faculty: CreateFacultyDto = {
                   userId: formData.get('userId')?.toString() || '',
                   employeeId: formData.get('employeeId')?.toString() || '',
                   designation: formData.get('designation')?.toString() || '',
                   departmentId: formData.get('departmentId')?.toString() || '',
                   joiningDate: formData.get('joiningDate')?.toString() || '',
-                  specializations: formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(s => s) || [],
-                  qualifications: (formData.get('qualifications')?.toString() || '').split(',').map(q => q.trim()).filter(q => q).map(q => ({
+                  specializations: selectedSpecializations,
+                  qualifications: selectedQualifications.map(q => ({
                     degree: q,
                     field: '',
                     institution: '',
@@ -668,33 +724,44 @@ const Faculty = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Designation</label>
-                <input
-                  type="text"
+                <select
                   name="designation"
-                  defaultValue={selectedFaculty?.designation}
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select Designation</option>
+                  {designationOptions.map(designation => (
+                    <option key={designation} value={designation}>{designation}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Specializations (comma-separated)</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-gray-700">Specializations</label>
+                <select
+                  multiple
                   name="specializations"
-                  defaultValue={selectedFaculty?.specializations?.join(', ')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-32"
+                >
+                  {specializationOptions.map(spec => (
+                    <option key={spec} value={spec}>{spec}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd to select multiple</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Qualifications (comma-separated)</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-gray-700">Qualifications</label>
+                <select
+                  multiple
                   name="qualifications"
-                  defaultValue={selectedFaculty?.qualifications?.join(', ')}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-32"
+                >
+                  {qualificationOptions.map(qual => (
+                    <option key={qual} value={qual}>{qual}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd to select multiple</p>
               </div>
 
               <div>
