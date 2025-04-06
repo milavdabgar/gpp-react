@@ -94,6 +94,22 @@ export const userApi = {
 };
 
 export const facultyApi = {
+  exportFacultyCsv: async () => {
+    const response = await api.get('/faculty/export-csv', {
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  uploadFacultyCsv: async (formData: FormData) => {
+    const response = await api.post<ApiResponse<{ faculty: any[] }>>('/faculty/upload-csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   getAllFaculty: async (): Promise<ApiResponse<{ faculty: any[] }>> => {
     const response = await api.get<ApiResponse<{ faculty: any[] }>>('/faculty');
     return response.data;

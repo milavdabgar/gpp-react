@@ -276,6 +276,49 @@ const Faculty = () => {
   };
 
   // Sort faculty members
+  const handleExportCsv = async () => {
+    try {
+      setIsLoading(true);
+      const response = await facultyApi.exportFacultyCsv();
+      const blob = new Blob([response.data as BlobPart], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'faculty.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting faculty data:', error);
+      showToast('Failed to export faculty data', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImportCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setIsLoading(true);
+      const response = await facultyApi.uploadFacultyCsv(formData);
+      showToast('Faculty data uploaded successfully', 'success');
+      fetchFacultyData(); // Refresh the faculty list
+    } catch (error) {
+      console.error('Error uploading faculty data:', error);
+      showToast('Failed to upload faculty data', 'error');
+    } finally {
+      setIsLoading(false);
+      // Reset the file input
+      event.target.value = '';
+    }
+  };
+
   const handleSort = (field: SortField) => {
     if (field === sortField) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -332,13 +375,34 @@ const Faculty = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Faculty Management</h1>
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          Add Faculty
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </button>
+          <label htmlFor="csvUpload" className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </label>
+          <input
+            id="csvUpload"
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleImportCsv}
+          />
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Add Faculty
+          </button>
+        </div>
       </div>
 
       {/* Search and filter */}
