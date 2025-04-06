@@ -9,6 +9,7 @@ import Users from './pages/admin/Users';
 import Roles from './pages/admin/Roles';
 import Departments from './pages/admin/Departments';
 import Faculty from './pages/admin/Faculty';
+import Student from './pages/admin/Student';
 import AdminDashboard from './pages/admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -45,6 +46,7 @@ function App() {
                     <Route path="roles" element={<Roles />} />
                     <Route path="departments" element={<Departments />} />
                     <Route path="faculties" element={<Faculty />} />
+                    <Route path="students" element={<Student />} />
                     <Route path="reports" element={<div>Reports Coming Soon</div>} />
                     <Route path="settings" element={<div>Settings Coming Soon</div>} />
                   </Routes>
