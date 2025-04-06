@@ -20,6 +20,18 @@ interface Department {
   name: string;
 }
 
+interface UserType {
+  _id: string;
+  name: string;
+  email: string;
+  roles?: string[];
+}
+
+interface DepartmentType {
+  _id: string;
+  name: string;
+}
+
 interface CreateFacultyDto {
   userId: string;
   departmentId: string;
@@ -35,18 +47,22 @@ interface CreateFacultyDto {
   };
 }
 
-interface FacultyWithDetails extends Omit<CreateFacultyDto, 'department'> {
+interface FacultyWithDetails {
   _id?: string;
-  user?: {
-    _id: string;
-    name: string;
-    email: string;
-    roles?: string[];
+  userId: string;
+  departmentId: string;
+  employeeId: string;
+  designation: string;
+  specializations?: string[];
+  qualifications?: string[];
+  joiningDate: string;
+  status: string;
+  experience?: {
+    years: number;
+    details: string;
   };
-  department?: {
-    _id: string;
-    name: string;
-  };
+  user?: UserType;
+  department?: DepartmentType;
 }
 
 const Faculty = () => {
@@ -74,7 +90,15 @@ const Faculty = () => {
     setIsLoading(true);
     try {
       const facultyResponse = await facultyApi.getAllFaculty();
-      setFaculty(facultyResponse.data.faculty);
+      const facultyWithDetails = facultyResponse.data.faculty.map((f: any) => ({
+        ...f,
+        user: typeof f.userId === 'object' ? f.userId : null,
+        department: typeof f.departmentId === 'object' ? f.departmentId : null,
+        // Ensure we always have string IDs
+        userId: typeof f.userId === 'object' ? f.userId._id : f.userId,
+        departmentId: typeof f.departmentId === 'object' ? f.departmentId._id : f.departmentId
+      }));
+      setFaculty(facultyWithDetails);
     } catch (error) {
       console.error('Error fetching faculty:', error);
       showToast('Error fetching faculty data', 'error');
@@ -166,18 +190,27 @@ const Faculty = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this faculty member?')) {
-      return;
-    }
+  const handleEditClick = (faculty: FacultyWithDetails) => {
+    // Ensure we have the complete faculty details before editing
+    const completeDetails = {
+      ...faculty,
+      userId: faculty.user?._id || faculty.userId,
+      departmentId: faculty.department?._id || faculty.departmentId,
+    };
+    setSelectedFaculty(completeDetails);
+    setShowEditModal(true);
+  };
 
-    try {
-      await facultyApi.deleteFaculty(id);
-      showToast('Faculty member deleted successfully', 'success');
-      fetchFacultyData();
-    } catch (error) {
-      console.error('Error deleting faculty member:', error);
-      showToast('Failed to delete faculty member', 'error');
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this faculty member?')) {
+      try {
+        await facultyApi.deleteFaculty(id);
+        showToast('Faculty member deleted successfully', 'success');
+        fetchFacultyData();
+      } catch (error) {
+        console.error('Error deleting faculty:', error);
+        showToast('Error deleting faculty member', 'error');
+      }
     }
   };
 
@@ -341,39 +374,19 @@ const Faculty = () => {
             ) : (
               filteredFaculty.map((faculty) => (
                 <tr key={faculty._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {faculty.employeeId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="font-medium text-gray-900">{faculty.user?.name}</div>
-                      <div className="text-gray-500">{faculty.user?.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {faculty.designation}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {faculty.department?.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(faculty.joiningDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      faculty.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{faculty.employeeId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{faculty.user?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{faculty.designation}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{faculty.department?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(faculty.joiningDate).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${faculty.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {faculty.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => {
-                        setSelectedFaculty(faculty);
-                        setShowEditModal(true);
-                      }}
+                      onClick={() => handleEditClick(faculty)}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >
                       <Edit className="h-5 w-5" />
