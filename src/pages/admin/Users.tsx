@@ -20,6 +20,7 @@ const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const { user: currentUser } = useAuth() as { user: AdminUser | null };
   const { showToast } = useToast();
 
@@ -60,6 +61,31 @@ const Users: React.FC = () => {
     } catch (error) {
       console.error('Error deleting user:', error);
       showToast(`Error deleting user: ${error}`, 'error');
+    }
+  };
+
+  const handleAddUser = async (userData: Partial<AdminUser>) => {
+    try {
+      const response = await fetch('http://localhost:9000/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add user');
+      }
+
+      const newUser = await response.json();
+      setUsers([...users, newUser.data]);
+      setShowAddModal(false);
+      showToast('User added successfully', 'success');
+    } catch (error) {
+      console.error('Error adding user:', error);
+      showToast(`Error adding user: ${error}`, 'error');
     }
   };
 
@@ -134,7 +160,13 @@ const Users: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center gap-2"
+          >
+            Add User
+          </button>
           {/* Import/Export buttons */}
           <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
             <Upload className="h-4 w-4 mr-2" />
@@ -238,10 +270,7 @@ const Users: React.FC = () => {
       {showEditModal && selectedUser && (
         <EditUserModal
           user={selectedUser}
-          onClose={() => {
-            setShowEditModal(false);
-            setSelectedUser(null);
-          }}
+          onClose={() => setShowEditModal(false)}
           onSave={async (updatedUser) => {
             try {
               const response = await fetch(`http://localhost:9000/api/admin/users/${selectedUser._id}`, {
@@ -376,6 +405,109 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
             >
               Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+interface AddUserModalProps {
+  onClose: () => void;
+  onSave: (user: Partial<AdminUser>) => void;
+}
+
+const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSave }) => {
+  const [formData, setFormData] = useState<Partial<AdminUser>>({
+    name: '',
+    email: '',
+    department: '',
+    roles: ['admin'],
+    selectedRole: 'admin'
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-semibold mb-4">Add New User</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Department</label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Role</label>
+              <select
+                name="selectedRole"
+                value={formData.selectedRole}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              >
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+                <option value="hod">HOD</option>
+                <option value="principal">Principal</option>
+                <option value="admin">Admin</option>
+                <option value="jury">Jury</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              Add User
             </button>
           </div>
         </form>
