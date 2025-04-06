@@ -7,11 +7,11 @@ import ProjectFairStudent from '../components/projectFair/student/ProjectFairStu
 import { useAuth } from '../context/AuthContext';
 
 const ProjectFair: React.FC = () => {
-  const { role } = useAuth();
+  const { user } = useAuth();
 
   // Render appropriate component based on user role
   const renderComponent = () => {
-    switch (role) {
+    switch (user?.selectedRole) {
       case 'admin':
         return <ProjectFairAdmin />;
       case 'jury':
