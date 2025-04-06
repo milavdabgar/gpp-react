@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { User } from '../types/auth';
+import type { Student, CreateStudentDto } from '../types/api';
 
 interface ApiResponse<T> {
   status: string;
@@ -175,6 +176,52 @@ export const facultyApi = {
     const response = await api.get<ApiResponse<{ faculty: any[] }>>(`/faculty/department/${departmentId}`);
     return response.data;
   }
+};
+
+export const studentApi = {
+  exportStudentsCsv: async () => {
+    const response = await api.get<Blob>('/students/export', { responseType: 'blob' });
+    return response;
+  },
+
+  uploadStudentsCsv: async (formData: FormData) => {
+    const response = await api.post<ApiResponse<{ message: string }>>('/students/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getAllStudents: async () => {
+    const response = await api.get<ApiResponse<{ students: Student[] }>>('/students');
+    return response.data;
+  },
+
+  getStudent: async (id: string) => {
+    const response = await api.get<ApiResponse<{ student: Student }>>(`/students/${id}`);
+    return response.data;
+  },
+
+  createStudent: async (studentData: CreateStudentDto & { name?: string; email?: string; password?: string }) => {
+    const response = await api.post<ApiResponse<{ student: Student }>>('/students', studentData);
+    return response.data;
+  },
+
+  updateStudent: async (id: string, studentData: Partial<CreateStudentDto>) => {
+    const response = await api.patch<ApiResponse<{ student: Student }>>(`/students/${id}`, studentData);
+    return response.data;
+  },
+
+  deleteStudent: async (id: string) => {
+    const response = await api.delete<ApiResponse<{ student: Student }>>(`/students/${id}`);
+    return response.data;
+  },
+
+  getStudentsByDepartment: async (departmentId: string) => {
+    const response = await api.get<ApiResponse<{ students: Student[] }>>(`/students/department/${departmentId}`);
+    return response.data;
+  },
 };
 
 export default api;
