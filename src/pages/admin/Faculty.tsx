@@ -32,13 +32,20 @@ interface DepartmentType {
   name: string;
 }
 
+interface Qualification {
+  degree: string;
+  field: string;
+  institution: string;
+  year: number;
+}
+
 interface CreateFacultyDto {
   userId: string;
   departmentId: string;
   employeeId: string;
   designation: string;
   specializations?: string[];
-  qualifications?: string[];
+  qualifications?: Qualification[];
   joiningDate: string;
   status: string;
   experience?: {
@@ -54,7 +61,7 @@ interface FacultyWithDetails {
   employeeId: string;
   designation: string;
   specializations?: string[];
-  qualifications?: string[];
+  qualifications?: Qualification[];
   joiningDate: string;
   status: string;
   experience?: {
@@ -68,6 +75,19 @@ interface FacultyWithDetails {
 const Faculty = () => {
   const { showToast } = useToast();
   const [faculty, setFaculty] = useState<FacultyWithDetails[]>([]);
+  
+  const transformQualifications = (quals: any[]): Qualification[] => {
+    if (!quals) return [];
+    if (typeof quals[0] === 'string') {
+      return quals.map(q => ({
+        degree: q,
+        field: '',
+        institution: '',
+        year: new Date().getFullYear()
+      }));
+    }
+    return quals;
+  };
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedFaculty, setSelectedFaculty] = useState<FacultyWithDetails | null>(null);
@@ -98,7 +118,10 @@ const Faculty = () => {
         userId: typeof f.userId === 'object' ? f.userId._id : f.userId,
         departmentId: typeof f.departmentId === 'object' ? f.departmentId._id : f.departmentId
       }));
-      setFaculty(facultyWithDetails);
+      setFaculty(facultyWithDetails.map((f: any) => ({
+        ...f,
+        qualifications: transformQualifications(f.qualifications)
+      })));
     } catch (error) {
       console.error('Error fetching faculty:', error);
       showToast('Error fetching faculty data', 'error');
@@ -429,7 +452,12 @@ const Faculty = () => {
                   departmentId: formData.get('departmentId')?.toString() || '',
                   joiningDate: formData.get('joiningDate')?.toString() || '',
                   specializations: formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(s => s) || [],
-                  qualifications: formData.get('qualifications')?.toString().split(',').map(q => q.trim()).filter(q => q) || [],
+                  qualifications: (formData.get('qualifications')?.toString() || '').split(',').map(q => q.trim()).filter(q => q).map(q => ({
+                    degree: q,
+                    field: '',
+                    institution: '',
+                    year: new Date().getFullYear()
+                  })),
                   status: formData.get('status')?.toString() || 'active',
                   experience: {
                     years: parseInt(formData.get('years')?.toString() || '0'),
@@ -519,12 +547,13 @@ const Faculty = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Qualifications (comma-separated)</label>
+                <label className="block text-sm font-medium text-gray-700">Qualifications (comma-separated degrees)</label>
                 <input
                   type="text"
                   name="qualifications"
-                  defaultValue={selectedFaculty.qualifications?.join(', ')}
+                  defaultValue={selectedFaculty.qualifications?.map(q => q.degree).join(', ')}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="e.g. B.Tech, M.Tech, Ph.D"
                 />
               </div>
 
@@ -590,7 +619,12 @@ const Faculty = () => {
                   departmentId: formData.get('departmentId')?.toString() || '',
                   joiningDate: formData.get('joiningDate')?.toString() || '',
                   specializations: formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(s => s) || [],
-                  qualifications: formData.get('qualifications')?.toString().split(',').map(q => q.trim()).filter(q => q) || [],
+                  qualifications: (formData.get('qualifications')?.toString() || '').split(',').map(q => q.trim()).filter(q => q).map(q => ({
+                    degree: q,
+                    field: '',
+                    institution: '',
+                    year: new Date().getFullYear()
+                  })),
                   status: formData.get('status')?.toString() || 'active',
                   experience: {
                     years: parseInt(formData.get('years')?.toString() || '0'),

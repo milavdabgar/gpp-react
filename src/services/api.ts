@@ -121,7 +121,12 @@ export const facultyApi = {
     departmentId?: string;
     joiningDate?: string;
     specializations?: string[];
-    qualifications?: string[];
+    qualifications?: {
+      degree: string;
+      field: string;
+      institution: string;
+      year: number;
+    }[];
     status?: string;
     experience?: {
       years: number;
