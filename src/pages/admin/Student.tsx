@@ -154,11 +154,11 @@ const Student = () => {
       const studentResponse = await studentApi.getAllStudents();
       const studentsWithDetails = studentResponse.data.students.map((s: any) => ({
         ...s,
-        user: typeof s.userId === 'object' ? s.userId : null,
-        department: typeof s.departmentId === 'object' ? s.departmentId : null,
+        user: s.userId && typeof s.userId === 'object' ? s.userId : null,
+        department: s.departmentId && typeof s.departmentId === 'object' ? s.departmentId : null,
         // Ensure we always have string IDs
-        userId: typeof s.userId === 'object' ? s.userId._id : s.userId,
-        departmentId: typeof s.departmentId === 'object' ? s.departmentId._id : s.departmentId
+        userId: s.userId && typeof s.userId === 'object' ? s.userId._id : s.userId,
+        departmentId: s.departmentId && typeof s.departmentId === 'object' ? s.departmentId._id : s.departmentId
       }));
       setStudents(studentsWithDetails.map((s: any) => ({
         ...s,
