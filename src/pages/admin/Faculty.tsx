@@ -66,45 +66,74 @@ const Faculty = () => {
 
   // Fetch faculty members
   useEffect(() => {
-    fetchFaculty();
     fetchUsers();
-    fetchDepartments();
+    fetchFacultyData();
   }, []);
+
+  const fetchFacultyData = async () => {
+    setIsLoading(true);
+    try {
+      const facultyResponse = await facultyApi.getAllFaculty();
+      setFaculty(facultyResponse.data.faculty);
+    } catch (error) {
+      console.error('Error fetching faculty:', error);
+      showToast('Error fetching faculty data', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
+      // Fetch departments first to ensure we have valid department IDs
+      await fetchDepartments();
+      
       const response = await api.get<{ status: string; data: { users: User[] } }>('/admin/users');
       const facultyUsers = response.data.data.users.filter(user => user.roles?.includes('faculty'));
       setUsers(facultyUsers);
       
       // Create faculty entries for users who don't have one
       const facultyResponse = await facultyApi.getAllFaculty();
-      const existingFacultyUserIds = facultyResponse.data.faculty.map(f => f.userId?._id);
+      const existingFacultyUserIds = facultyResponse.data.faculty
+        .filter(f => f.userId) // Filter out any invalid entries
+        .map(f => f.userId._id);
       
-      // Create faculty entries for users who don't have one
-      const usersWithoutFaculty = facultyUsers.filter(user => !existingFacultyUserIds.includes(user._id));
+      // Create faculty entries for users who don't have one and have a valid department
+      const usersWithoutFaculty = facultyUsers.filter(user => 
+        !existingFacultyUserIds.includes(user._id) && 
+        user.department && 
+        departments.some(d => d._id === user.department)
+      ).filter(user => user.department !== undefined); // Extra type safety
       
       if (usersWithoutFaculty.length > 0) {
         showToast(`Creating faculty entries for ${usersWithoutFaculty.length} new faculty members...`, 'info');
         
         for (const user of usersWithoutFaculty) {
           try {
+            // Double check to prevent race conditions
+            const checkExisting = await facultyApi.getAllFaculty();
+            if (checkExisting.data.faculty.some(f => f.userId?._id === user._id)) {
+              console.log(`Faculty entry already exists for user ${user.name}, skipping...`);
+              continue;
+            }
+            
+            // TypeScript type assertion since we've already filtered for valid departments
             const newFaculty = {
               userId: user._id,
-              employeeId: `F${Math.random().toString(36).substr(2, 6).toUpperCase()}`, // Generate a random faculty ID
+              employeeId: `F${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
               designation: 'Assistant Professor',
-              departmentId: user.department || '',
+              departmentId: user.department as string,
               joiningDate: new Date().toISOString().split('T')[0],
               status: 'active',
-              specializations: ['General'], // Default specialization
+              specializations: ['General'],
               qualifications: [{
                 degree: 'Ph.D.',
                 field: 'Engineering',
                 institution: 'To be updated',
                 year: new Date().getFullYear()
               }],
-              experience: 0 // Default experience in years
+              experience: 0
             };
             await facultyApi.createFaculty(newFaculty);
           } catch (error) {
@@ -113,7 +142,7 @@ const Faculty = () => {
         }
         
         // Refresh faculty list after creating new entries
-        await fetchFaculty();
+        fetchFacultyData();
         showToast('Faculty entries created successfully', 'success');
       }
     } catch (error) {
@@ -137,21 +166,6 @@ const Faculty = () => {
     }
   };
 
-  const fetchFaculty = async () => {
-    setIsLoading(true);
-    try {
-      const response = await facultyApi.getAllFaculty();
-      const facultyMembers = response.data.faculty.filter(f => f.userId); // Only include faculty with valid user IDs
-      setFaculty(facultyMembers);
-    } catch (error) {
-      console.error('Error fetching faculty:', error);
-      showToast('Error fetching faculty members', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Delete faculty member
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this faculty member?')) {
       return;
@@ -160,7 +174,7 @@ const Faculty = () => {
     try {
       await facultyApi.deleteFaculty(id);
       showToast('Faculty member deleted successfully', 'success');
-      fetchFaculty();
+      fetchFacultyData();
     } catch (error) {
       console.error('Error deleting faculty member:', error);
       showToast('Failed to delete faculty member', 'error');
@@ -177,7 +191,7 @@ const Faculty = () => {
     }
   };
 
-  const sortedFaculty = [...faculty].sort((a, b) => {
+  const sortedFaculty = faculty.sort((a, b) => {
     let compareA: string | number | Date = '';
     let compareB: string | number | Date = '';
 
@@ -251,7 +265,11 @@ const Faculty = () => {
           className="px-4 py-2 border rounded-md"
         >
           <option value="all">All Departments</option>
-          {/* Add department options here */}
+          {departments.map(dept => (
+            <option key={dept._id} value={dept._id}>
+              {dept.name}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -406,7 +424,7 @@ const Faculty = () => {
                 await facultyApi.createFaculty(faculty);
                 showToast('Faculty member created successfully', 'success');
                 setShowAddModal(false);
-                fetchFaculty();
+                fetchFacultyData();
               } catch (error) {
                 console.error('Error creating faculty:', error);
                 showToast('Failed to create faculty member', 'error');
