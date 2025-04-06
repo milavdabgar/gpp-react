@@ -225,8 +225,10 @@ const Faculty = () => {
               }
             };
             await facultyApi.createFaculty(newFaculty);
-          } catch (error) {
-            console.error(`Error creating faculty entry for user ${user.name}:`, error);
+          } catch (error: any) {
+            const errorMessage = error.response?.data?.message || `Error creating faculty entry for user ${user.name}`;
+            console.error(errorMessage, error);
+            showToast(errorMessage, 'error');
           }
         }
         
@@ -779,9 +781,10 @@ const Faculty = () => {
                 );
                 setShowAddModal(false);
                 fetchFacultyData();
-              } catch (error) {
+              } catch (error: any) {
                 console.error('Error creating faculty:', error);
-                showToast('Failed to create faculty member', 'error');
+                const errorMessage = error.response?.data?.message || 'Failed to create faculty member';
+                showToast(errorMessage, 'error');
               }
             }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
