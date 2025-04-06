@@ -6,7 +6,7 @@ import { Role } from '../../types/auth';
 
 const AppLayout: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentModule, setCurrentModule] = useState('dashboard');
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -165,7 +165,32 @@ const AppLayout: React.FC = () => {
                 
                 {/* Account dropdown menu */}
                 {showAccountMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-1 z-50">
+                    {/* Role switcher */}
+                    {user?.roles && user.roles.length > 1 && (
+                      <div className="px-4 py-2 border-b border-gray-200">
+                        <div className="text-xs font-medium text-gray-500 mb-2">Switch Role</div>
+                        <div className="space-y-1">
+                          {user.roles.map((role) => (
+                            <button
+                              key={role}
+                              onClick={() => {
+                                switchRole(role);
+                                setShowAccountMenu(false);
+                              }}
+                              className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded text-sm ${user.selectedRole === role ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                            >
+                              <span className="capitalize">{role}</span>
+                              {user.selectedRole === role && (
+                                <span className="ml-auto text-blue-700">✓</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Logout button */}
                     <button
                       onClick={() => {
                         logout();
