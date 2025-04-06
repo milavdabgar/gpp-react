@@ -46,6 +46,34 @@ const Users: React.FC = () => {
   };
 
   // Delete user
+  const handleUpdateUser = async (updatedUser: Partial<AdminUser>) => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await fetch(`http://localhost:9000/api/admin/users/${selectedUser._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(updatedUser)
+      });
+
+      if (response.ok) {
+        const { data } = await response.json();
+        setUsers(users.map(u => u._id === data.user._id ? data.user : u));
+        setShowEditModal(false);
+        setSelectedUser(null);
+        showToast('User updated successfully', 'success');
+      } else {
+        showToast('Failed to update user', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      showToast('Error updating user', 'error');
+    }
+  };
+
   const handleDelete = async (userId: string) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
@@ -79,10 +107,14 @@ const Users: React.FC = () => {
         throw new Error('Failed to add user');
       }
 
-      const newUser = await response.json();
-      setUsers([...users, newUser.data]);
-      setShowAddModal(false);
-      showToast('User added successfully', 'success');
+      const { data } = await response.json();
+      if (data && data.user) {
+        setUsers([...users, data.user]);
+        setShowAddModal(false);
+        showToast('User added successfully', 'success');
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
       console.error('Error adding user:', error);
       showToast(`Error adding user: ${error}`, 'error');
@@ -150,11 +182,14 @@ const Users: React.FC = () => {
   };
 
   // Filter users based on search term
-  const filteredUsers = users.filter((user: AdminUser) =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.department?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter((user: AdminUser) => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      (user.name || '').toLowerCase().includes(searchTermLower) ||
+      (user.email || '').toLowerCase().includes(searchTermLower) ||
+      (user.department || '').toLowerCase().includes(searchTermLower)
+    );
+  });
 
   return (
     <div className="p-6">
@@ -266,32 +301,18 @@ const Users: React.FC = () => {
         </table>
       </div>
 
-      {/* Edit Modal */}
       {showEditModal && selectedUser && (
         <EditUserModal
           user={selectedUser}
           onClose={() => setShowEditModal(false)}
-          onSave={async (updatedUser) => {
-            try {
-              const response = await fetch(`http://localhost:9000/api/admin/users/${selectedUser._id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(updatedUser)
-              });
+          onSave={handleUpdateUser}
+        />
+      )}
 
-              if (response.ok) {
-                const { data } = await response.json();
-                setUsers(users.map(u => u._id === data.user._id ? data.user : u));
-                setShowEditModal(false);
-                setSelectedUser(null);
-              }
-            } catch (error) {
-              console.error('Error updating user:', error);
-            }
-          }}
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddUser}
         />
       )}
     </div>
