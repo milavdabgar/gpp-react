@@ -4,11 +4,9 @@ import { Download, Upload, Edit, Trash2, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Role } from '../../types/auth';
+import { Department } from '../../types/department';
 
-interface Department {
-  _id: string;
-  name: string;
-}
+
 
 interface AdminUser {
   // MongoDB document ID
@@ -25,6 +23,7 @@ type SortOrder = 'asc' | 'desc';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
@@ -37,9 +36,10 @@ const Users: React.FC = () => {
   const { user: currentUser } = useAuth() as { user: AdminUser | null };
   const { showToast } = useToast();
 
-  // Fetch users
+  // Fetch users and departments
   useEffect(() => {
     fetchUsers();
+    fetchDepartments();
   }, []);
 
   const fetchUsers = async () => {
@@ -53,8 +53,29 @@ const Users: React.FC = () => {
       setUsers(data.data.users);
     } catch (error) {
       console.error('Error fetching users:', error);
+      showToast('Error fetching users', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch('http://localhost:9000/api/departments', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch departments');
+      }
+      const { status, data } = await response.json();
+      if (status === 'success' && Array.isArray(data.departments)) {
+        setDepartments(data.departments);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      showToast('Error fetching departments', 'error');
     }
   };
 
@@ -204,8 +225,8 @@ const Users: React.FC = () => {
     }
   };
 
-  // Get unique departments and roles
-  const departments = ['all', ...Array.from(new Set(users.map(user => user.department || 'None'))).sort()];
+  // Get unique roles
+  const departmentOptions = ['all', ...departments.map(dept => dept._id)];
   const roles = ['all', ...Array.from(new Set(users.flatMap(user => user.roles))).sort()];
 
   // Filter and sort users
@@ -279,9 +300,9 @@ const Users: React.FC = () => {
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
           >
-            {departments.map(dept => (
-              <option key={dept} value={dept}>
-                {dept === 'all' ? 'All Departments' : dept}
+            {departmentOptions.map(deptId => (
+              <option key={deptId} value={deptId}>
+                {deptId === 'all' ? 'All Departments' : departments.find(d => d._id === deptId)?.name || 'Unknown'}
               </option>
             ))}
           </select>
@@ -353,7 +374,7 @@ const Users: React.FC = () => {
                   <div className="text-sm text-gray-500">{user.email}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{user.department || '-'}</div>
+                  <div className="text-sm text-gray-500">{user.department ? (departments.find(d => d._id === user.department)?.name || 'Unknown') : '-'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1">
