@@ -1,0 +1,6 @@
+enrollmentNo,userId.name,userId.email,departmentId.name,batch,semester,status,admissionDate
+EN2025001,Rahul Patel,rahul.patel@gppalanpur.in,ICT,2025-2029,1,active,2025-06-15T00:00:00.000Z
+EN2025002,Priya Shah,priya.shah@gppalanpur.in,Civil,2025-2029,1,active,2025-06-15T00:00:00.000Z
+EN2025003,Amit Kumar,amit.kumar@gppalanpur.in,Electrical,2025-2029,1,active,2025-06-15T00:00:00.000Z
+EN2025004,Meera Desai,meera.desai@gppalanpur.in,Mechanical,2025-2029,1,active,2025-06-15T00:00:00.000Z
+EN2025005,Raj Singh,raj.singh@gppalanpur.in,ICT,2025-2029,1,active,2025-06-15T00:00:00.000Z

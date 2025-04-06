@@ -1,0 +1,6 @@
+name,email,employeeId,department,designation,specializations,qualifications,field,institution,year,joiningDate,experienceYears,experienceDetails
+Rajesh Kumar,rajesh.kumar@gppalanpur.in,F2025001,ICT,Associate Professor,Machine Learning,Ph.D.,Computer Science,IIT Bombay,2020,2025-06-01,8,Industry and academic experience
+Neha Sharma,neha.sharma@gppalanpur.in,F2025002,Civil,Assistant Professor,Structural Engineering,M.Tech,Civil Engineering,NIT Surat,2018,2025-06-01,5,Research focus
+Suresh Patel,suresh.patel@gppalanpur.in,F2025003,Electrical,Professor,Power Systems,Ph.D.,Electrical Engineering,SVNIT,2015,2025-06-01,12,Industry expert
+Maya Desai,maya.desai@gppalanpur.in,F2025004,Mechanical,Assistant Professor,Thermal Engineering,Ph.D.,Mechanical Engineering,DAIICT,2019,2025-06-01,6,Research background
+Arjun Singh,arjun.singh@gppalanpur.in,F2025005,ICT,Assistant Professor,Web Technologies,M.Tech,Information Technology,GTU,2021,2025-06-01,4,Full-stack development

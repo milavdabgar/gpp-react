@@ -1,0 +1,11 @@
+name,email,department,roles,selectedRole,createdAt
+Rajesh Kumar,rajesh.kumar@gppalanpur.in,67f251737a9f7da008349193,["faculty","hod"],faculty,2025-06-01T00:00:00.000Z
+Neha Sharma,neha.sharma@gppalanpur.in,67f266c2017383405018e155,["faculty"],faculty,2025-06-01T00:00:00.000Z
+Suresh Patel,suresh.patel@gppalanpur.in,67f251297a9f7da008349153,["faculty"],faculty,2025-06-01T00:00:00.000Z
+Maya Desai,maya.desai@gppalanpur.in,67f2671e017383405018e171,["faculty","jury"],faculty,2025-06-01T00:00:00.000Z
+Arjun Singh,arjun.singh@gppalanpur.in,67f251737a9f7da008349193,["faculty"],faculty,2025-06-01T00:00:00.000Z
+Rahul Patel,rahul.patel@gppalanpur.in,67f251737a9f7da008349193,["student"],student,2025-06-15T00:00:00.000Z
+Priya Shah,priya.shah@gppalanpur.in,67f266c2017383405018e155,["student"],student,2025-06-15T00:00:00.000Z
+Amit Kumar,amit.kumar@gppalanpur.in,67f251297a9f7da008349153,["student"],student,2025-06-15T00:00:00.000Z
+Meera Desai,meera.desai@gppalanpur.in,67f2671e017383405018e171,["student"],student,2025-06-15T00:00:00.000Z
+Raj Singh,raj.singh@gppalanpur.in,67f251737a9f7da008349193,["student"],student,2025-06-15T00:00:00.000Z
