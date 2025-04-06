@@ -12,31 +12,31 @@ import {
 
 export const resultApi = {
   // Get all results with optional filtering
-  getAllResults: async (params: ResultFilterParams = {}) => {
+  getAllResults: async (params: ResultFilterParams = {}): Promise<ResultsResponse> => {
     const response = await api.get<ResultsResponse>('/results', { params });
     return response.data;
   },
 
   // Get a single result by ID
-  getResult: async (id: string) => {
+  getResult: async (id: string): Promise<ResultDetailResponse> => {
     const response = await api.get<ResultDetailResponse>(`/results/${id}`);
     return response.data;
   },
 
   // Get all results for a specific student
-  getStudentResults: async (studentId: string) => {
+  getStudentResults: async (studentId: string): Promise<ResultsResponse> => {
     const response = await api.get<ResultsResponse>(`/results/student/${studentId}`);
     return response.data;
   },
 
   // Get recent upload batches
-  getUploadBatches: async () => {
+  getUploadBatches: async (): Promise<BatchesResponse> => {
     const response = await api.get<BatchesResponse>('/results/batches');
     return response.data;
   },
 
   // Import results from a CSV file
-  importResults: async (formData: FormData) => {
+  importResults: async (formData: FormData): Promise<ResultImportResponse> => {
     const response = await api.post<ResultImportResponse>('/results/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -61,7 +61,7 @@ export const resultApi = {
   },
 
   // Delete all results in a batch
-  deleteResultsByBatch: async (batchId: string) => {
+  deleteResultsByBatch: async (batchId: string): Promise<ResultDeleteBatchResponse> => {
     const response = await api.delete<ResultDeleteBatchResponse>(`/results/batch/${batchId}`);
     return response.data;
   },
@@ -70,8 +70,8 @@ export const resultApi = {
   getBranchAnalysis: async (params: {
     academicYear?: string;
     examid?: number;
-  } = {}) => {
-    const response = await api.get<AnalysisResponse>('/results/analysis/branch', { params });
+  } = {}): Promise<AnalysisResponse> => {
+    const response = await api.get<AnalysisResponse>('/results/analysis', { params });
     return response.data;
   }
 };

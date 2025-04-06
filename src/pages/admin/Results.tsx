@@ -2,43 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Download, Upload, Trash2, Search, Filter, Info, FileText } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { resultApi } from '../../services/api';
+import type { Result, UploadBatch, BranchAnalysis, ResultsResponse, BatchesResponse, ResultImportResponse, ResultDeleteBatchResponse, AnalysisResponse, Pagination } from '../../types/result';
 
-interface UploadBatch {
-  _id: string;
-  count: number;
-  latestUpload: string;
-}
 
-interface Result {
-  _id: string;
-  st_id: string;
-  name: string;
-  branchName: string;
-  semester: number;
-  academicYear: string;
-  exam: string;
-  examid: number;
-  spi: number;
-  cpi: number;
-  result: string;
-  uploadBatch: string;
-  createdAt: string;
-}
-
-interface BranchAnalysis {
-  _id: {
-    branchName: string;
-    semester: number;
-  };
-  totalStudents: number;
-  passCount: number;
-  distinctionCount: number;
-  firstClassCount: number;
-  secondClassCount: number;
-  passPercentage: number;
-  avgSpi: number;
-  avgCpi: number;
-}
 
 const Results = () => {
   const { showToast } = useToast();
@@ -90,9 +56,8 @@ const Results = () => {
         }, {} as any)
       };
 
-      const response = await resultApi.getAllResults(params);
+      const response = await resultApi.getAllResults(params) as ResultsResponse;
       setResults(response.data.results);
-
       if (response.data.pagination) {
         setPagination(response.data.pagination);
       }
@@ -108,7 +73,7 @@ const Results = () => {
   const fetchBatches = async () => {
     setIsLoading(true);
     try {
-      const response = await resultApi.getUploadBatches();
+      const response = await resultApi.getUploadBatches() as BatchesResponse;
       setBatches(response.data.batches);
     } catch (error) {
       console.error('Error fetching batches:', error);
@@ -127,7 +92,7 @@ const Results = () => {
         examid: filters.examid ? parseInt(filters.examid) : undefined
       };
 
-      const response = await resultApi.getBranchAnalysis(params);
+      const response = await resultApi.getBranchAnalysis(params) as AnalysisResponse;
       setBranchAnalysis(response.data.analysis);
     } catch (error) {
       console.error('Error fetching branch analysis:', error);
@@ -165,7 +130,7 @@ const Results = () => {
 
     try {
       setIsLoading(true);
-      const response = await resultApi.importResults(formData);
+      const response = await resultApi.importResults(formData) as ResultImportResponse;
       showToast(`Successfully imported ${response.data.importedCount} results`, 'success');
 
       // Refresh both results and batches
@@ -220,7 +185,7 @@ const Results = () => {
 
     try {
       setIsLoading(true);
-      const response = await resultApi.deleteResultsByBatch(selectedBatch);
+      const response = await resultApi.deleteResultsByBatch(selectedBatch) as ResultDeleteBatchResponse;
       showToast(`Successfully deleted ${response.data.deletedCount} results`, 'success');
 
       // Refresh both results and batches
@@ -486,7 +451,7 @@ const Results = () => {
 
                       {/* Page buttons */}
                       {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                        let pageNum;
+                        let pageNum: number;
                         if (pagination.pages <= 5) {
                           pageNum = i + 1;
                         } else if (pagination.page <= 3) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Book, Check, X, Award, Info } from 'lucide-react';
 import { resultApi } from '../../services/api';
-import { Result, Subject } from '../../types/result';
+import { Result, Subject, ResultsResponse } from '../../types/result';
 import { useToast } from '../../context/ToastContext';
 
 interface StudentResultViewProps {
@@ -23,7 +23,7 @@ const StudentResultView: React.FC<StudentResultViewProps> = ({ studentId }) => {
   const fetchResults = async () => {
     setIsLoading(true);
     try {
-      const response = await resultApi.getStudentResults(studentId);
+      const response = await resultApi.getStudentResults(studentId) as ResultsResponse;
       setResults(response.data.results);
     } catch (error) {
       console.error('Error fetching student results:', error);
@@ -171,7 +171,7 @@ const StudentResultView: React.FC<StudentResultViewProps> = ({ studentId }) => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {result.subjects.map((subject, index) => (
+                        {result.subjects.map((subject: Subject, index: number) => (
                           <tr key={index} className={subject.isBacklog ? 'bg-red-50' : ''}>
                             <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                               {subject.code}
@@ -216,7 +216,7 @@ const StudentResultView: React.FC<StudentResultViewProps> = ({ studentId }) => {
                       <div>
                         <div className="text-sm text-gray-500">Total Backlogs</div>
                         <div className="font-medium">
-                          {result.subjects.filter(s => s.isBacklog).length}
+                          {result.subjects.sort((a: Subject, b: Subject) => (a.isBacklog ? 1 : -1)).length}
                         </div>
                       </div>
                     </div>
