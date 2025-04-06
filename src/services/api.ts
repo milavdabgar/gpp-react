@@ -195,33 +195,33 @@ export const studentApi = {
 
   getAllStudents: async () => {
     console.log('Fetching all students...');
-    const response = await api.get<ApiResponse<{ students: Student[] }>>('/student');
+    const response = await api.get<ApiResponse<{ students: Student[] }>>('/students');
     console.log('Student response:', response.data);
     return response.data;
   },
 
   getStudent: async (id: string) => {
-    const response = await api.get<ApiResponse<{ student: Student }>>(`/student/${id}`);
+    const response = await api.get<ApiResponse<{ student: Student }>>(`/students/${id}`);
     return response.data;
   },
 
   createStudent: async (studentData: CreateStudentDto & { name?: string; email?: string; password?: string }) => {
-    const response = await api.post<ApiResponse<{ student: Student }>>('/student', studentData);
+    const response = await api.post<ApiResponse<{ student: Student }>>('/students', studentData);
     return response.data;
   },
 
   updateStudent: async (id: string, studentData: Partial<CreateStudentDto>) => {
-    const response = await api.patch<ApiResponse<{ student: Student }>>(`/student/${id}`, studentData);
+    const response = await api.patch<ApiResponse<{ student: Student }>>(`/students/${id}`, studentData);
     return response.data;
   },
 
   deleteStudent: async (id: string) => {
-    const response = await api.delete<ApiResponse<{ student: Student }>>(`/student/${id}`);
+    const response = await api.delete<ApiResponse<{ student: Student }>>(`/students/${id}`);
     return response.data;
   },
 
   getStudentsByDepartment: async (departmentId: string) => {
-    const response = await api.get<ApiResponse<{ students: Student[] }>>(`/student/department/${departmentId}`);
+    const response = await api.get<ApiResponse<{ students: Student[] }>>(`/students/department/${departmentId}`);
     return response.data;
   },
 };
