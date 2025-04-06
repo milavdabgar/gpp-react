@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import ProjectFair from './pages/ProjectFair';
 import { Login } from './pages/Login';
 import Signup from './pages/Signup';
+import Users from './pages/admin/Users';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -36,8 +37,10 @@ function App() {
             {/* Admin routes */}
             <Route path="admin/*" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                {/* Admin components will go here */}
-                <div>Admin Dashboard</div>
+                <Routes>
+                  <Route index element={<div>Admin Dashboard</div>} />
+                  <Route path="users" element={<Users />} />
+                </Routes>
               </ProtectedRoute>
             } />
             

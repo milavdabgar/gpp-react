@@ -66,6 +66,18 @@ const AppLayout: React.FC = () => {
   // Handle navigation click
   const handleNavClick = (id: string) => {
     setCurrentModule(id);
+    // Navigate to the appropriate route
+    if (userRole === 'admin') {
+      if (id === 'users') {
+        navigate('/admin/users');
+      } else if (id === 'dashboard') {
+        navigate('/admin');
+      } else {
+        navigate(`/admin/${id}`);
+      }
+    } else {
+      navigate(`/${id}`);
+    }
     // On mobile, close sidebar after navigation
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
