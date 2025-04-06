@@ -24,6 +24,8 @@ const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -197,15 +199,22 @@ const Users: React.FC = () => {
     }
   };
 
+  // Get unique departments and roles
+  const departments = ['all', ...Array.from(new Set(users.map(user => user.department || 'None'))).sort()];
+  const roles = ['all', ...Array.from(new Set(users.flatMap(user => user.roles))).sort()];
+
   // Filter and sort users
   const filteredUsers = users
     .filter((user: AdminUser) => {
       const searchTermLower = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = (
         (user.name || '').toLowerCase().includes(searchTermLower) ||
-        (user.email || '').toLowerCase().includes(searchTermLower) ||
-        (user.department || '').toLowerCase().includes(searchTermLower)
+        (user.email || '').toLowerCase().includes(searchTermLower)
       );
+      const matchesRole = selectedRole === 'all' || user.roles.includes(selectedRole as Role);
+      const matchesDepartment = selectedDepartment === 'all' || user.department === selectedDepartment;
+      
+      return matchesSearch && matchesRole && matchesDepartment;
     })
     .sort((a, b) => {
       const aValue = (a[sortField] || '').toLowerCase();
@@ -247,17 +256,43 @@ const Users: React.FC = () => {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="mb-6">
-        <div className="relative">
+      {/* Filters */}
+      <div className="mb-6 flex gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search by name or email..."
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="w-48">
+          <select
+            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+          >
+            {departments.map(dept => (
+              <option key={dept} value={dept}>
+                {dept === 'all' ? 'All Departments' : dept}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-48">
+          <select
+            className="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+          >
+            {roles.map(role => (
+              <option key={role} value={role}>
+                {role === 'all' ? 'All Roles' : role}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
