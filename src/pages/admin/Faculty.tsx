@@ -486,18 +486,31 @@ const Faculty = () => {
                 const selectedSpecializations = Array.from(e.currentTarget.specializations.selectedOptions).map(option => (option as HTMLOptionElement).value);
                 const selectedQualifications = Array.from(e.currentTarget.qualifications.selectedOptions).map(option => (option as HTMLOptionElement).value);
 
+                // Create a map of existing qualifications for easy lookup
+                const existingQualificationsMap = new Map(
+                  selectedFaculty.qualifications?.map(q => [q.degree, q]) || []
+                );
+
                 const updatedFaculty = {
                   employeeId: formData.get('employeeId')?.toString() || '',
                   designation: formData.get('designation')?.toString() || '',
                   departmentId: formData.get('departmentId')?.toString() || '',
                   joiningDate: formData.get('joiningDate')?.toString() || '',
                   specializations: selectedSpecializations,
-                  qualifications: selectedQualifications.map(q => ({
-                    degree: q,
-                    field: '',
-                    institution: '',
-                    year: new Date().getFullYear()
-                  })),
+                  qualifications: selectedQualifications.map(degree => {
+                    // If we have existing data for this degree, use it
+                    const existing = existingQualificationsMap.get(degree);
+                    if (existing) {
+                      return existing;
+                    }
+                    // Otherwise create a new qualification with default values
+                    return {
+                      degree,
+                      field: 'General',
+                      institution: 'Institution',
+                      year: new Date().getFullYear()
+                    };
+                  }),
                   status: formData.get('status')?.toString() || 'active',
                   experience: {
                     years: parseInt(formData.get('years')?.toString() || '0'),
