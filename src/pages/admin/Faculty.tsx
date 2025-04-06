@@ -196,6 +196,7 @@ const Faculty = () => {
       ...faculty,
       userId: faculty.user?._id || faculty.userId,
       departmentId: faculty.department?._id || faculty.departmentId,
+      experience: faculty.experience || { years: 0, details: '' }
     };
     setSelectedFaculty(completeDetails);
     setShowEditModal(true);
@@ -404,6 +405,168 @@ const Faculty = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Edit Faculty Modal */}
+      {showEditModal && selectedFaculty && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Edit Faculty Member</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-500">
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              try {
+                if (!selectedFaculty._id) throw new Error('No faculty ID');
+
+                const updatedFaculty = {
+                  employeeId: formData.get('employeeId')?.toString() || '',
+                  designation: formData.get('designation')?.toString() || '',
+                  departmentId: formData.get('departmentId')?.toString() || '',
+                  joiningDate: formData.get('joiningDate')?.toString() || '',
+                  specializations: formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(s => s) || [],
+                  qualifications: formData.get('qualifications')?.toString().split(',').map(q => q.trim()).filter(q => q) || [],
+                  status: formData.get('status')?.toString() || 'active',
+                  experience: {
+                    years: parseInt(formData.get('years')?.toString() || '0'),
+                    details: formData.get('details')?.toString() || ''
+                  }
+                };
+
+                await facultyApi.updateFaculty(selectedFaculty._id, updatedFaculty);
+                showToast('Faculty member updated successfully', 'success');
+                setShowEditModal(false);
+                setSelectedFaculty(null);
+                fetchFacultyData();
+              } catch (error) {
+                console.error('Error updating faculty:', error);
+                showToast('Failed to update faculty member', 'error');
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Department</label>
+                <select
+                  name="departmentId"
+                  defaultValue={selectedFaculty.departmentId}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept._id} value={dept._id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                <input
+                  type="text"
+                  name="employeeId"
+                  defaultValue={selectedFaculty.employeeId}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Designation</label>
+                <input
+                  type="text"
+                  name="designation"
+                  defaultValue={selectedFaculty.designation}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Joining Date</label>
+                <input
+                  type="date"
+                  name="joiningDate"
+                  defaultValue={selectedFaculty.joiningDate.split('T')[0]}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <select
+                  name="status"
+                  defaultValue={selectedFaculty.status}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Specializations (comma-separated)</label>
+                <input
+                  type="text"
+                  name="specializations"
+                  defaultValue={selectedFaculty.specializations?.join(', ')}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Qualifications (comma-separated)</label>
+                <input
+                  type="text"
+                  name="qualifications"
+                  defaultValue={selectedFaculty.qualifications?.join(', ')}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Experience Years</label>
+                <input
+                  type="number"
+                  name="years"
+                  defaultValue={selectedFaculty.experience?.years || 0}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Experience Details</label>
+                <textarea
+                  name="details"
+                  defaultValue={selectedFaculty.experience?.details || ''}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add Faculty Modal */}
       {showAddModal && (

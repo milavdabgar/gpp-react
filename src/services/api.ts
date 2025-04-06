@@ -118,8 +118,15 @@ export const facultyApi = {
   updateFaculty: async (id: string, facultyData: {
     employeeId?: string;
     designation?: string;
-    department?: string;
+    departmentId?: string;
     joiningDate?: string;
+    specializations?: string[];
+    qualifications?: string[];
+    status?: string;
+    experience?: {
+      years: number;
+      details: string;
+    };
   }): Promise<ApiResponse<{ faculty: any }>> => {
     const response = await api.patch<ApiResponse<{ faculty: any }>>(`/faculty/${id}`, facultyData);
     return response.data;
