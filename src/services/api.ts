@@ -194,7 +194,9 @@ export const studentApi = {
   },
 
   getAllStudents: async () => {
+    console.log('Fetching all students...');
     const response = await api.get<ApiResponse<{ students: Student[] }>>('/student');
+    console.log('Student response:', response.data);
     return response.data;
   },
 

@@ -19,6 +19,7 @@ export interface ErrorResponse {
   errors?: any[];
 }
 
+// Add this to your existing types/api.ts file
 export interface EducationBackground {
   degree: string;
   institution: string;
