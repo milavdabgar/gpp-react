@@ -147,14 +147,20 @@ const Faculty = () => {
     setIsLoading(true);
     try {
       const facultyResponse = await facultyApi.getAllFaculty();
-      const facultyWithDetails = facultyResponse.data.faculty.map((f: any) => ({
-        ...f,
-        user: typeof f.userId === 'object' ? f.userId : null,
-        department: typeof f.departmentId === 'object' ? f.departmentId : null,
-        // Ensure we always have string IDs
-        userId: typeof f.userId === 'object' ? f.userId._id : f.userId,
-        departmentId: typeof f.departmentId === 'object' ? f.departmentId._id : f.departmentId
-      }));
+      const facultyWithDetails = facultyResponse.data.faculty.map((f: any) => {
+        // Handle potentially missing or null references
+        const user = f.userId && typeof f.userId === 'object' ? f.userId : null;
+        const department = f.departmentId && typeof f.departmentId === 'object' ? f.departmentId : null;
+
+        return {
+          ...f,
+          user,
+          department,
+          // Ensure we always have string IDs, fallback to original value if object is null
+          userId: user ? user._id : f.userId,
+          departmentId: department ? department._id : f.departmentId
+        };
+      });
       setFaculty(facultyWithDetails.map((f: any) => ({
         ...f,
         qualifications: transformQualifications(f.qualifications)
