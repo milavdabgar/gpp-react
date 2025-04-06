@@ -1,11 +1,11 @@
-name,email,department,roles,selectedRole,createdAt
-Rajesh Kumar,rajesh.kumar@gppalanpur.in,67f251737a9f7da008349193,["faculty","hod"],faculty,2025-06-01T00:00:00.000Z
-Neha Sharma,neha.sharma@gppalanpur.in,67f266c2017383405018e155,["faculty"],faculty,2025-06-01T00:00:00.000Z
-Suresh Patel,suresh.patel@gppalanpur.in,67f251297a9f7da008349153,["faculty"],faculty,2025-06-01T00:00:00.000Z
-Maya Desai,maya.desai@gppalanpur.in,67f2671e017383405018e171,["faculty","jury"],faculty,2025-06-01T00:00:00.000Z
-Arjun Singh,arjun.singh@gppalanpur.in,67f251737a9f7da008349193,["faculty"],faculty,2025-06-01T00:00:00.000Z
-Rahul Patel,rahul.patel@gppalanpur.in,67f251737a9f7da008349193,["student"],student,2025-06-15T00:00:00.000Z
-Priya Shah,priya.shah@gppalanpur.in,67f266c2017383405018e155,["student"],student,2025-06-15T00:00:00.000Z
-Amit Kumar,amit.kumar@gppalanpur.in,67f251297a9f7da008349153,["student"],student,2025-06-15T00:00:00.000Z
-Meera Desai,meera.desai@gppalanpur.in,67f2671e017383405018e171,["student"],student,2025-06-15T00:00:00.000Z
-Raj Singh,raj.singh@gppalanpur.in,67f251737a9f7da008349193,["student"],student,2025-06-15T00:00:00.000Z
+"Name","Email","Department","Roles","Selected Role","Created At"
+"Ankit Patel","ankit.patel@gppalanpur.in","IT","faculty, hod","faculty","2025-04-06"
+"Deepa Shah","deepa.shah@gppalanpur.in","Civil","faculty","faculty","2025-04-06"
+"Kiran Mehta","kiran.mehta@gppalanpur.in","Electrical","faculty, jury","faculty","2025-04-06"
+"Sanjay Verma","sanjay.verma@gppalanpur.in","Ec","faculty","faculty","2025-04-06"
+"Pooja Gupta","pooja.gupta@gppalanpur.in","ICT","faculty","faculty","2025-04-06"
+"Vikram Singh","vikram.singh@gppalanpur.in","Civil","student","student","2025-04-06"
+"Nisha Patel","nisha.patel@gppalanpur.in","IT","student","student","2025-04-06"
+"Rohan Shah","rohan.shah@gppalanpur.in","Electrical","student","student","2025-04-06"
+"Anjali Kumar","anjali.kumar@gppalanpur.in","Ec","student","student","2025-04-06"
+"Dhruv Mehta","dhruv.mehta@gppalanpur.in","ICT","student","student","2025-04-06"
