@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Upload, Edit, Trash2, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { Role } from '../../types/auth';
 
 interface AdminUser {
@@ -20,6 +21,7 @@ const Users: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const { user: currentUser } = useAuth() as { user: AdminUser | null };
+  const { showToast } = useToast();
 
   // Fetch users
   useEffect(() => {
@@ -54,8 +56,10 @@ const Users: React.FC = () => {
         }
       });
       setUsers(users.filter(user => user._id !== userId));
+      showToast('User deleted successfully', 'success');
     } catch (error) {
       console.error('Error deleting user:', error);
+      showToast(`Error deleting user: ${error}`, 'error');
     }
   };
 
@@ -75,12 +79,17 @@ const Users: React.FC = () => {
         },
         body: formData
       });
-      
+
       if (response.ok) {
+        showToast('Users imported successfully', 'success');
+        // Refresh users list after import
         fetchUsers();
+      } else {
+        const error = await response.text();
+        showToast(`Import failed: ${error}`, 'error');
       }
     } catch (error) {
-      console.error('Error importing users:', error);
+      showToast(`Error importing users: ${error}`, 'error');
     }
   };
 
@@ -92,9 +101,11 @@ const Users: React.FC = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Export failed: ${response.statusText}`);
+        const error = await response.text();
+        showToast(`Export failed: ${error}`, 'error');
+        return;
       }
 
       const blob = await response.blob();
@@ -104,9 +115,11 @@ const Users: React.FC = () => {
       a.download = 'users.csv';
       document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      showToast('Users exported successfully', 'success');
     } catch (error) {
-      console.error('Error exporting users:', error);
+      showToast(`Error exporting users: ${error}`, 'error');
     }
   };
 

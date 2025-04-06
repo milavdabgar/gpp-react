@@ -7,64 +7,58 @@ import { Login } from './pages/Login';
 import Signup from './pages/Signup';
 import Users from './pages/admin/Users';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Protected routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+      <ToastProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             
-            {/* Project Fair - accessible by all authenticated users */}
-            <Route path="project-fair" element={
-              <ProtectedRoute allowedRoles={['student', 'faculty', 'admin', 'jury']}>
-                <ProjectFair />
+            {/* Protected routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <AppLayout />
               </ProtectedRoute>
-            } />
+            }>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="project-fair" element={
+                <ProtectedRoute allowedRoles={['student', 'faculty', 'admin', 'jury']}>
+                  <ProjectFair />
+                </ProtectedRoute>
+              } />
+              <Route path="admin/*" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Routes>
+                    <Route index element={<div>Admin Dashboard</div>} />
+                    <Route path="users" element={<Users />} />
+                  </Routes>
+                </ProtectedRoute>
+              } />
+              <Route path="hod/*" element={
+                <ProtectedRoute allowedRoles={['hod']}>
+                  <div>HOD Dashboard</div>
+                </ProtectedRoute>
+              } />
+              <Route path="principal/*" element={
+                <ProtectedRoute allowedRoles={['principal']}>
+                  {/* Principal components will go here */}
+                  <div>Principal Dashboard</div>
+                </ProtectedRoute>
+              } />
+            </Route>
             
-            {/* Admin routes */}
-            <Route path="admin/*" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Routes>
-                  <Route index element={<div>Admin Dashboard</div>} />
-                  <Route path="users" element={<Users />} />
-                </Routes>
-              </ProtectedRoute>
-            } />
-            
-            {/* HOD routes */}
-            <Route path="hod/*" element={
-              <ProtectedRoute allowedRoles={['hod']}>
-                {/* HOD components will go here */}
-                <div>HOD Dashboard</div>
-              </ProtectedRoute>
-            } />
-            
-            {/* Principal routes */}
-            <Route path="principal/*" element={
-              <ProtectedRoute allowedRoles={['principal']}>
-                {/* Principal components will go here */}
-                <div>Principal Dashboard</div>
-              </ProtectedRoute>
-            } />
-          </Route>
-          
-          {/* Catch all route - redirect to dashboard */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+            {/* Catch all route - redirect to dashboard */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }
