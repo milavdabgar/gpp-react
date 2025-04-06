@@ -93,4 +93,47 @@ export const userApi = {
   },
 };
 
+export const facultyApi = {
+  getAllFaculty: async (): Promise<ApiResponse<{ faculty: any[] }>> => {
+    const response = await api.get<ApiResponse<{ faculty: any[] }>>('/faculty');
+    return response.data;
+  },
+
+  getFaculty: async (id: string): Promise<ApiResponse<{ faculty: any }>> => {
+    const response = await api.get<ApiResponse<{ faculty: any }>>(`/faculty/${id}`);
+    return response.data;
+  },
+
+  createFaculty: async (facultyData: {
+    userId: string;
+    employeeId: string;
+    designation: string;
+    department: string;
+    joiningDate: string;
+  }): Promise<ApiResponse<{ faculty: any }>> => {
+    const response = await api.post<ApiResponse<{ faculty: any }>>('/faculty', facultyData);
+    return response.data;
+  },
+
+  updateFaculty: async (id: string, facultyData: {
+    employeeId?: string;
+    designation?: string;
+    department?: string;
+    joiningDate?: string;
+  }): Promise<ApiResponse<{ faculty: any }>> => {
+    const response = await api.patch<ApiResponse<{ faculty: any }>>(`/faculty/${id}`, facultyData);
+    return response.data;
+  },
+
+  deleteFaculty: async (id: string): Promise<ApiResponse<{ faculty: any }>> => {
+    const response = await api.delete<ApiResponse<{ faculty: any }>>(`/faculty/${id}`);
+    return response.data;
+  },
+
+  getFacultyByDepartment: async (departmentId: string): Promise<ApiResponse<{ faculty: any[] }>> => {
+    const response = await api.get<ApiResponse<{ faculty: any[] }>>(`/faculty/department/${departmentId}`);
+    return response.data;
+  }
+};
+
 export default api;
