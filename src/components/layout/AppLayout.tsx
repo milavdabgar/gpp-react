@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, User, Bell, LogOut, ChevronDown, Home, Book, Calendar, Users, Award, Layers, Activity, Settings } from 'lucide-react';
+import { Menu, X, User, Bell, LogOut, ChevronDown, Home, Book, Calendar, Users, Award, Layers, Activity, Settings, FileText, BarChart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { Role } from '../../types/auth';
@@ -42,6 +42,7 @@ const AppLayout: React.FC = () => {
       { name: 'Departments', icon: Layers, id: 'departments' },
       { name: 'Faculty', icon: Users, id: 'faculties' },
       { name: 'Students', icon: Users, id: 'students' },
+      { name: 'Results', icon: BarChart, id: 'results' }, // New item for Results
       { name: 'Project Fair Admin', icon: Award, id: 'project-fair', highlight: true },
       { name: 'Settings', icon: Settings, id: 'settings' },
     ],
@@ -49,12 +50,14 @@ const AppLayout: React.FC = () => {
       { name: 'Dashboard', icon: Home, id: 'dashboard' },
       { name: 'Department', icon: Layers, id: 'department' },
       { name: 'Faculty', icon: Users, id: 'faculty' },
+      { name: 'Results', icon: BarChart, id: 'results' }, // New item for Results
       { name: 'Projects', icon: Award, id: 'projects' },
     ],
     principal: [
       { name: 'Dashboard', icon: Home, id: 'dashboard' },
       { name: 'Departments', icon: Layers, id: 'departments' },
       { name: 'Faculty', icon: Users, id: 'faculty' },
+      { name: 'Results', icon: BarChart, id: 'results' }, // New item for Results
       { name: 'Projects', icon: Award, id: 'projects' },
     ],
     jury: [
@@ -77,6 +80,8 @@ const AppLayout: React.FC = () => {
         navigate('/admin');
       } else if (id === 'project-fair') {
         navigate('/project-fair');
+      } else if (id === 'results') {
+        navigate('/admin/results');
       } else {
         navigate(`/admin/${id}`);
       }

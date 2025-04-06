@@ -68,6 +68,38 @@ export interface Student {
   };
 }
 
+export interface Subject {
+  code: string;
+  name: string;
+  credits: number;
+  grade: string;
+  isBacklog: boolean;
+}
+
+export interface Result {
+  _id: string;
+  st_id: string;
+  extype: string;
+  examid: number;
+  exam: string;
+  declarationDate: string;
+  academicYear: string;
+  semester: number;
+  name: string;
+  branchName: string;
+  subjects: Subject[];
+  totalCredits: number;
+  earnedCredits: number;
+  spi: number;
+  cpi: number;
+  cgpa: number;
+  result: string;
+  trials: number;
+  remark: string;
+  uploadBatch: string;
+  createdAt: string;
+}
+
 export type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionDate';
 export type SortOrder = 'asc' | 'desc';
 
