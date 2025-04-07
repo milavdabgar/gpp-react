@@ -1,0 +1,4 @@
+id,title,department,team,members,location,registrationDate,departmentEvaluation.status,departmentEvaluation.score,centralEvaluation.status,centralEvaluation.score
+NPNI-2025-0042,Smart Waste Management System,Computer Engineering,Team Innovate,3,Stall A-12,2025-04-01,completed,85,pending,
+NPNI-2025-0056,Solar Powered Water Purifier,Electrical Engineering,EcoSolutions,4,Stall B-08,2025-04-02,completed,92,pending,
+NPNI-2025-0073,Structural Health Monitoring Device,Civil Engineering,BuildTech,2,Stall C-15,2025-04-03,completed,78,pending,

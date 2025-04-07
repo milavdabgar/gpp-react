@@ -120,43 +120,170 @@ export const sendCertificateEmails = async (emailData: EmailData): Promise<void>
   await axios.post(`${API_URL}/certificates/send`, emailData);
 };
 
-export const exportProjectsToCsv = async (filters = {}) => {
-  const params = new URLSearchParams();
-  
-  // Add all filters to query params
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.append(key, value as string);
-  });
-  
-  const response = await axios.get(`${API_URL}/export?${params.toString()}`, {
-    responseType: 'blob'
-  });
-  
-  // Create a blob from the response data
-  const blob = new Blob([response.data as BlobPart], { type: 'text/csv' });
-  
-  // Create a link element and trigger download
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', 'projects.csv');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+export const exportProjectsToCsv = async () => {
+  try {
+    const filters: Record<string, string> = {};
+    const params = new URLSearchParams();
+    
+    // Add all filters to query params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
+
+    const response = await axios.get(`${API_URL}/export?${params.toString()}`, {
+      responseType: 'blob'
+    });
+
+    // Create a blob from the response data
+    const blob = new Blob([response.data as BlobPart], { type: 'text/csv' });
+    
+    // Create a link element and trigger download
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'projects.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting projects:', error);
+    throw error;
+  }
 };
 
-export const importProjectsFromCsv = async (file: File): Promise<Project[]> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const response = await axios.post<{ data: Project[] }>(`${API_URL}/import`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  
-  return response.data.data;
+interface SeedResponse {
+  status: string;
+  data: {
+    departments: Array<{
+      _id: string;
+      name: string;
+      code: string;
+    }>;
+    users: Array<{
+      _id: string;
+      name: string;
+      department: string;
+      contactNumber: string;
+    }>;
+    event: {
+      _id: string;
+    };
+    teams: Array<{
+      _id: string;
+    }>;
+  };
+}
+
+export const createSampleProjects = async () => {
+  try {
+    // First, seed the database with required data
+    const seedResponse = await axios.post<SeedResponse>(`${API_URL}/seed`);
+    const { departments, users, event, teams } = seedResponse.data.data;
+
+    const sampleProjects = [
+      {
+        title: 'Smart Waste Management System',
+        category: 'Environmental Technology',
+        abstract: 'An IoT-based smart waste management system that optimizes collection routes and monitors fill levels.',
+        department: departments[0]._id, // Computer Engineering
+        status: 'submitted',
+        requirements: {
+          power: true,
+          internet: true,
+          specialSpace: false,
+          otherRequirements: 'Requires outdoor testing area'
+        },
+        guide: {
+          userId: users[0]._id,
+          name: users[0].name,
+          department: departments[0]._id,
+          contactNumber: users[0].contactNumber
+        },
+        teamId: teams[0]._id,
+        eventId: event._id,
+        deptEvaluation: {
+          completed: true,
+          score: 85,
+          feedback: 'Innovative solution with good technical implementation',
+          juryId: users[0]._id,
+          evaluatedAt: new Date('2025-04-05')
+        },
+        centralEvaluation: {
+          completed: false,
+          score: 0,
+          feedback: '',
+          juryId: null,
+          evaluatedAt: null
+        }
+      },
+      {
+        title: 'Solar Powered Water Purifier',
+        category: 'Renewable Energy',
+        abstract: 'A sustainable water purification system powered entirely by solar energy.',
+        department: departments[1]._id, // Electrical Engineering
+        status: 'submitted',
+        requirements: {
+          power: false,
+          internet: false,
+          specialSpace: true,
+          otherRequirements: 'Needs direct sunlight exposure'
+        },
+        guide: {
+          userId: users[1]._id,
+          name: users[1].name,
+          department: departments[1]._id,
+          contactNumber: users[1].contactNumber
+        },
+        teamId: teams[1]._id,
+        eventId: event._id,
+        deptEvaluation: {
+          completed: true,
+          score: 92,
+          feedback: 'Excellent project with significant environmental impact',
+          juryId: users[1]._id,
+          evaluatedAt: new Date('2025-04-05')
+        },
+        centralEvaluation: {
+          completed: false,
+          score: 0,
+          feedback: '',
+          juryId: null,
+          evaluatedAt: null
+        }
+      }
+    ];
+
+    // Create each project
+    const createdProjects = await Promise.all(
+      sampleProjects.map(project => 
+        axios.post(`${API_URL}`, project)
+      )
+    );
+
+    return createdProjects.map(response => response.data);
+  } catch (error) {
+    console.error('Error creating sample projects:', error);
+    throw error;
+  }
+};
+
+export const importProjectsFromCsv = async (file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(`${API_URL}/import`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error importing projects:', error);
+    throw error;
+  }
 };
 
 // Team Services
