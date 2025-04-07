@@ -115,10 +115,12 @@ const Departments: React.FC = () => {
 
   // Handle department creation
   const handleCreateDepartment = async (newDepartment: Partial<Department>) => {
-    // Convert string date to ISO format
+    // Convert string date to ISO format and remove empty hodId
+    const { hodId, establishedDate, ...rest } = newDepartment;
     const departmentData = {
-      ...newDepartment,
-      establishedDate: new Date(newDepartment.establishedDate!).toISOString()
+      ...rest,
+      establishedDate: new Date(establishedDate!).toISOString(),
+      ...(hodId ? { hodId } : {})
     };
     try {
       console.log('Creating department:', departmentData);
@@ -472,9 +474,9 @@ const AddDepartmentModal: React.FC<AddDepartmentModalProps> = ({ onClose, onSave
     name: '',
     code: '',
     description: '',
-    hodId: '',
     establishedDate: new Date().toISOString().split('T')[0],
-    isActive: true
+    isActive: true,
+    hodId: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
