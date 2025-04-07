@@ -139,10 +139,10 @@ const AppLayout: React.FC = () => {
               <li key={item.id}>
                 <button
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded transition-colors ${
+                  className={`w-full flex items-center space-x-3 px-3 py-2 mb-1 rounded-md transition-colors bg-white bg-opacity-90 ${
                     currentModule === item.id
-                      ? 'bg-blue-700 text-white'
-                      : 'text-blue-100 hover:bg-blue-700'
+                      ? 'text-blue-800 font-medium'
+                      : 'text-gray-700 hover:bg-opacity-100'
                   }`}
                 >
                   <item.icon size={20} />
