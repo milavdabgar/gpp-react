@@ -1,8 +1,8 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ProjectFairAdmin from '../components/projectFair/admin/ProjectFairAdmin';
-import ProjectRegistrationForm from '../components/projectFair/registration/ProjectRegistrationForm';
-import JuryEvaluation from '../components/projectFair/jury/JuryEvaluation';
+import ProjectRegistrationForm from '../components/projectFair/registration/ProjectRegistrationFormDummy';
+import JuryEvaluation from '../components/projectFair/jury/JuryEvaluationDummy';
 import ProjectFairStudent from '../components/projectFair/student/ProjectFairStudent';
 import { useAuth } from '../context/AuthContext';
 
