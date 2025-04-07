@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Project } from '../../../types/project.types';
-import { getAllProjects, exportProjectsToCsv, importProjectsFromCsv, createSampleProjects } from '../../../services/projectApi';
 import { 
   Users, 
   Award, 
   Map, 
   Download, 
+  Upload,
   CheckCircle, 
   AlertTriangle, 
   Activity, 
@@ -16,37 +15,150 @@ import {
   Search, 
   Calendar
 } from 'lucide-react';
+import LocationAssignmentsTab from './LocationAssignmentsTab';
+import ScheduleTab from './ScheduleTab';
+import ResultsCertificatesTab from './ResultsCertificatesTab';
+import projectService from '../../../services/projectApi';
+import { Project, Team, Event, ProjectStatistics, CategoryCounts } from '../../../types/project.types';
+import { toast } from 'react-toastify';
 
 export default function ProjectFairAdmin() {
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [juryMembers, setJuryMembers] = useState<any[]>([]);
+  const [statistics, setStatistics] = useState<ProjectStatistics | null>(null);
+  const [categoryCounts, setCategoryCounts] = useState<CategoryCounts | null>(null);
+  const [eventSchedule, setEventSchedule] = useState<any[]>([]);
+  const [activeEvent, setActiveEvent] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [evaluationFilter, setEvaluationFilter] = useState<string>('all');
 
-  // Fetch projects from API
+  // Load active event when component mounts
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchActiveEvent = async () => {
       try {
-        setLoading(true);
-        const data = await getAllProjects();
-        setProjects(data);
-        setError(null);
+        const events = await projectService.getActiveEvents();
+        if (events && events.length > 0) {
+          setActiveEvent(events[0]._id);
+          setEvents(events);
+        }
       } catch (err) {
-        setError('Failed to load projects');
-        console.error('Error fetching projects:', err);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching active events:', err);
+        setError('Failed to load active events');
       }
     };
 
-    fetchProjects();
+    fetchActiveEvent();
   }, []);
+
+  // Load projects when active event changes
+  useEffect(() => {
+    if (activeEvent) {
+      fetchProjectData();
+    }
+  }, [activeEvent]);
+
+  // Load data based on active tab
+  useEffect(() => {
+    if (activeEvent) {
+      if (activeTab === 'overview') {
+        fetchStats();
+        fetchCategoryCounts();
+        fetchEventSchedule();
+      } else if (activeTab === 'jury') {
+        fetchJuryMembers();
+      } else if (activeTab === 'teams') {
+        fetchTeams();
+      }
+    }
+  }, [activeTab, activeEvent]);
+
+  // Fetch project data with filters
+  const fetchProjectData = async () => {
+    try {
+      setLoading(true);
+      const filters: Record<string, string> = { eventId: activeEvent };
+      
+      if (departmentFilter !== 'all') filters.department = departmentFilter;
+      if (categoryFilter !== 'all') filters.category = categoryFilter;
+      if (evaluationFilter === 'pendingDept') filters.deptEvaluationStatus = 'pending';
+      if (evaluationFilter === 'completedDept') filters.deptEvaluationStatus = 'completed';
+      if (evaluationFilter === 'pendingCentral') filters.centralEvaluationStatus = 'pending';
+      if (evaluationFilter === 'completedCentral') filters.centralEvaluationStatus = 'completed';
+      
+      const data = await projectService.getAllProjects(filters);
+      setProjects(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError('Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const stats = await projectService.getProjectStatistics(activeEvent);
+      setStatistics(stats);
+    } catch (err) {
+      console.error('Error fetching statistics:', err);
+    }
+  };
+
+  const fetchCategoryCounts = async () => {
+    try {
+      const data = await projectService.getProjectCountsByCategory(activeEvent);
+      setCategoryCounts(data);
+    } catch (err) {
+      console.error('Error fetching category counts:', err);
+    }
+  };
+
+  const fetchEventSchedule = async () => {
+    try {
+      if (activeEvent) {
+        const data = await projectService.getEventSchedule(activeEvent);
+        setEventSchedule(data?.schedule || []);
+      }
+    } catch (err) {
+      console.error('Error fetching event schedule:', err);
+    }
+  };
+
+  const fetchJuryMembers = async () => {
+    try {
+      // Using admin route to get users with jury role
+      const response = await fetch('/api/admin/users?role=jury');
+      const data = await response.json();
+      setJuryMembers(data.data.users);
+    } catch (err) {
+      console.error('Error fetching jury members:', err);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const teams = await projectService.getTeamsByEvent(activeEvent);
+      setTeams(teams);
+    } catch (err) {
+      console.error('Error fetching teams:', err);
+    }
+  };
 
   const handleExport = async () => {
     try {
-      await exportProjectsToCsv();
+      await projectService.exportProjectsToCsv();
+      toast.success('Projects exported successfully');
     } catch (err) {
       console.error('Error exporting projects:', err);
+      toast.error('Failed to export projects');
     }
   };
 
@@ -55,92 +167,75 @@ export default function ProjectFairAdmin() {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      const formData = new FormData();
-      formData.append('file', file);
-
-      await importProjectsFromCsv(file);
-      // Refresh the projects list
-      const data = await getAllProjects();
-      setProjects(data);
+      setLoading(true);
+      const result = await projectService.importProjectsFromCsv(file);
+      toast.success(`Imported ${result.imported} projects successfully`);
+      
+      // Refresh data
+      fetchProjectData();
     } catch (err) {
       console.error('Error importing projects:', err);
-      setError('Failed to import projects');
+      toast.error('Failed to import projects');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCreateSampleProjects = async () => {
     try {
-      await createSampleProjects();
-      // Refresh the projects list
-      const data = await getAllProjects();
-      setProjects(data);
+      setLoading(true);
+      await projectService.createSampleProjects();
+      toast.success('Sample projects created successfully');
+      
+      // Refresh data
+      fetchProjectData();
     } catch (err) {
       console.error('Error creating sample projects:', err);
-      setError('Failed to create sample projects');
+      toast.error('Failed to create sample projects');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Sample statistics data
-  const stats = {
-    totalProjects: 42,
-    totalDepartments: 5,
-    totalJuries: 16,
-    registrationsToday: 8,
-    pendingEvaluations: 24,
-    completedEvaluations: 18
-  };
-  
-  // Sample projects by department
-  const departmentProjects = [
-    { department: 'Computer Engineering', count: 15, evaluatedCount: 7 },
-    { department: 'Electrical Engineering', count: 10, evaluatedCount: 5 },
-    { department: 'Civil Engineering', count: 8, evaluatedCount: 3 },
-    { department: 'Mechanical Engineering', count: 6, evaluatedCount: 2 },
-    { department: 'Electronics & Communication', count: 3, evaluatedCount: 1 }
-  ];
-  
-  // Sample jury members
-  const juryMembers = [
-    { 
-      id: 'J001', 
-      name: 'Dr. Amit Patel', 
-      type: 'department', 
-      department: 'Computer Engineering', 
-      email: 'amit.patel@gppalanpur.ac.in',
-      assignedProjects: 5,
-      evaluatedProjects: 3
-    },
-    { 
-      id: 'J002', 
-      name: 'Prof. Sanjay Mehta', 
-      type: 'department', 
-      department: 'Electrical Engineering', 
-      email: 'sanjay.mehta@gppalanpur.ac.in',
-      assignedProjects: 4,
-      evaluatedProjects: 2
-    },
-    { 
-      id: 'J003', 
-      name: 'Dr. Priya Sharma', 
-      type: 'central', 
-      department: 'External - IIT Gandhinagar', 
-      email: 'priya.sharma@iitgn.ac.in',
-      assignedProjects: 6,
-      evaluatedProjects: 0
+  const handleDeleteProject = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      try {
+        await projectService.deleteProject(id);
+        toast.success('Project deleted successfully');
+        
+        // Refresh project list
+        fetchProjectData();
+      } catch (err) {
+        console.error('Error deleting project:', err);
+        toast.error('Failed to delete project');
+      }
     }
-  ];
-  
-  // Sample event schedule
-  const eventSchedule = [
-    { time: '08:30 AM - 09:30 AM', activity: 'Setup and Registration', location: 'Main Hall Entrance' },
-    { time: '09:30 AM - 10:00 AM', activity: 'Inauguration Ceremony', location: 'Auditorium' },
-    { time: '10:00 AM - 12:00 PM', activity: 'Department Jury Evaluation', location: 'Project Stalls' },
-    { time: '12:00 PM - 01:00 PM', activity: 'Lunch Break', location: 'Cafeteria' },
-    { time: '01:00 PM - 02:00 PM', activity: 'Open Viewing for Visitors', location: 'Project Stalls' },
-    { time: '02:00 PM - 04:00 PM', activity: 'Central Expert Jury Evaluation', location: 'Project Stalls' },
-    { time: '04:30 PM - 05:30 PM', activity: 'Award Ceremony and Closing', location: 'Auditorium' }
-  ];
-  
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleFilterChange = () => {
+    fetchProjectData();
+  };
+
+  // Filter projects by search term
+  const filteredProjects = projects.filter(project =>
+    project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (project.id && project.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (project.team && typeof project.team === 'string' && project.team.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Format departments data for overview
+  const departmentProjectsData = statistics?.departmentWise 
+    ? Object.entries(statistics.departmentWise).map(([dept, count]) => ({
+        department: dept,
+        count,
+        evaluatedCount: 0 // You may need to add this data from the backend
+      }))
+    : [];
+
   // Render the Overview tab content
   const renderOverviewTab = () => (
     <div>
@@ -155,7 +250,7 @@ export default function ProjectFairAdmin() {
               </div>
               <div>
                 <div className="text-sm text-blue-500">Total Projects</div>
-                <div className="text-2xl font-bold text-blue-700">{stats.totalProjects}</div>
+                <div className="text-2xl font-bold text-blue-700">{statistics?.total || 0}</div>
               </div>
             </div>
           </div>
@@ -166,8 +261,8 @@ export default function ProjectFairAdmin() {
                 <Users className="h-6 w-6 text-green-700" />
               </div>
               <div>
-                <div className="text-sm text-green-500">Jury Members</div>
-                <div className="text-2xl font-bold text-green-700">{stats.totalJuries}</div>
+                <div className="text-sm text-green-500">Evaluated Projects</div>
+                <div className="text-2xl font-bold text-green-700">{statistics?.evaluated || 0}</div>
               </div>
             </div>
           </div>
@@ -178,8 +273,8 @@ export default function ProjectFairAdmin() {
                 <CheckCircle className="h-6 w-6 text-purple-700" />
               </div>
               <div>
-                <div className="text-sm text-purple-500">Evaluations Completed</div>
-                <div className="text-2xl font-bold text-purple-700">{stats.completedEvaluations}</div>
+                <div className="text-sm text-purple-500">Average Score</div>
+                <div className="text-2xl font-bold text-purple-700">{statistics?.averageScore ? `${statistics.averageScore.toFixed(1)}%` : 'N/A'}</div>
               </div>
             </div>
           </div>
@@ -191,7 +286,7 @@ export default function ProjectFairAdmin() {
               </div>
               <div>
                 <div className="text-sm text-yellow-500">Pending Evaluations</div>
-                <div className="text-2xl font-bold text-yellow-700">{stats.pendingEvaluations}</div>
+                <div className="text-2xl font-bold text-yellow-700">{statistics?.pending || 0}</div>
               </div>
             </div>
           </div>
@@ -202,8 +297,8 @@ export default function ProjectFairAdmin() {
                 <Activity className="h-6 w-6 text-red-700" />
               </div>
               <div>
-                <div className="text-sm text-red-500">Registrations Today</div>
-                <div className="text-2xl font-bold text-red-700">{stats.registrationsToday}</div>
+                <div className="text-sm text-red-500">Departments</div>
+                <div className="text-2xl font-bold text-red-700">{departmentProjectsData.length}</div>
               </div>
             </div>
           </div>
@@ -214,8 +309,10 @@ export default function ProjectFairAdmin() {
                 <Map className="h-6 w-6 text-gray-700" />
               </div>
               <div>
-                <div className="text-sm text-gray-500">Departments</div>
-                <div className="text-2xl font-bold text-gray-700">{stats.totalDepartments}</div>
+                <div className="text-sm text-gray-500">Categories</div>
+                <div className="text-2xl font-bold text-gray-700">
+                  {categoryCounts ? Object.keys(categoryCounts).length : 0}
+                </div>
               </div>
             </div>
           </div>
@@ -226,7 +323,7 @@ export default function ProjectFairAdmin() {
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">Projects by Department</h3>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
-          {departmentProjects.map((dept, index) => (
+          {departmentProjectsData.map((dept, index) => (
             <div key={index} className="mb-4 last:mb-0">
               <div className="flex justify-between mb-1">
                 <span className="text-sm font-medium">{dept.department}</span>
@@ -235,19 +332,28 @@ export default function ProjectFairAdmin() {
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-600"
-                  style={{ width: `${(dept.count / stats.totalProjects) * 100}%` }}
+                  style={{ width: `${(dept.count / (statistics?.total || 1)) * 100}%` }}
                 ></div>
               </div>
             </div>
           ))}
+
+          {departmentProjectsData.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              No department data available
+            </div>
+          )}
         </div>
       </div>
       
       {/* Event Schedule */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Event Schedule - April 9, 2025</h3>
-          <button className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+          <h3 className="text-lg font-semibold">Event Schedule</h3>
+          <button 
+            className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            onClick={() => setActiveTab('schedule')}
+          >
             <Calendar size={14} className="mr-1" />
             View Full Schedule
           </button>
@@ -267,29 +373,43 @@ export default function ProjectFairAdmin() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Location
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Coordinator
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {eventSchedule.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {item.time}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.activity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.location}
+                {eventSchedule.length > 0 ? (
+                  eventSchedule.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {item.time}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.activity}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.location}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.coordinator?.name || 'N/A'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                      No schedule items available
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
       
-      {/* Recent Registrations */}
+      {/* Recent Projects */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Recent Project Registrations</h3>
@@ -302,32 +422,52 @@ export default function ProjectFairAdmin() {
         </div>
         
         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
-          {Array.isArray(projects) && projects.map((project, index) => (
-            <div key={index} className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-gray-500 block">{project.id}</span>
-                <h4 className="font-medium">{project.title}</h4>
-                <div className="flex items-center mt-1 text-sm text-gray-600">
-                  <span className="mr-3">{project.department}</span>
-                  <span className="flex items-center">
-                    <User size={14} className="mr-1" />
-                    {project.team} ({project.members})
-                  </span>
+          {loading ? (
+            <div className="p-4 text-center text-gray-500">Loading projects...</div>
+          ) : error ? (
+            <div className="p-4 text-center text-red-500">{error}</div>
+          ) : projects.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">No projects found</div>
+          ) : (
+            projects.slice(0, 5).map((project, index) => (
+              <div key={index} className="p-4 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-gray-500 block">{project._id}</span>
+                  <h4 className="font-medium">{project.title}</h4>
+                  <div className="flex items-center mt-1 text-sm text-gray-600">
+                    <span className="mr-3">{project.department?.name || project.department}</span>
+                    <span className="flex items-center">
+                      <User size={14} className="mr-1" />
+                      {typeof project.team === 'string' ? project.team : project.team?.name}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500">ID: {project.id || project._id}</div>
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      project.deptEvaluation?.completed 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      Dept: {project.deptEvaluation?.completed 
+                        ? `${project.deptEvaluation.score}%` 
+                        : 'Pending'}
+                    </span>
+                    <span className={`ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      project.centralEvaluation?.completed 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      Central: {project.centralEvaluation?.completed 
+                        ? `${project.centralEvaluation.score}%` 
+                        : 'Pending'}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-500">Registered on {project.registrationDate}</div>
-                <div className="mt-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-1">
-                    Dept: {project.departmentEvaluation.status === 'completed' ? `${project.departmentEvaluation.score}%` : 'Pending'}
-                  </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Central: {project.centralEvaluation.status === 'completed' ? `${project.centralEvaluation.score}%` : 'Pending'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -343,34 +483,39 @@ export default function ProjectFairAdmin() {
             <input
               type="text"
               placeholder="Search projects..."
+              value={searchTerm}
+              onChange={handleSearchChange}
               className="pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
           </div>
-          <div className="flex space-x-4">
+          <div className="flex space-x-2">
             <button
               onClick={handleCreateSampleProjects}
               className="flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md shadow-sm"
+              disabled={loading}
             >
               <Plus size={16} className="mr-2" />
               Add Sample Projects
             </button>
             <label className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm cursor-pointer">
-              <Plus size={16} className="mr-2" />
+              <Upload size={16} className="mr-2" />
               Import CSV
               <input
                 type="file"
                 accept=".csv"
                 onChange={handleImport}
                 className="hidden"
+                disabled={loading}
               />
             </label>
             <button
               onClick={handleExport}
               className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm"
+              disabled={loading}
             >
               <Download size={16} className="mr-2" />
-              Export List
+              Export CSV
             </button>
           </div>
         </div>
@@ -380,27 +525,49 @@ export default function ProjectFairAdmin() {
       <div className="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap items-center gap-3">
         <div className="text-sm font-medium text-gray-700 mr-2">Filter By:</div>
         
-        <select className="text-sm border border-gray-300 rounded-md p-2 bg-white">
-          <option>All Departments</option>
-          <option>Computer Engineering</option>
-          <option>Electrical Engineering</option>
-          <option>Civil Engineering</option>
+        <select 
+          className="text-sm border border-gray-300 rounded-md p-2 bg-white"
+          value={departmentFilter}
+          onChange={(e) => setDepartmentFilter(e.target.value)}
+          onBlur={handleFilterChange}
+        >
+          <option value="all">All Departments</option>
+          {departmentProjectsData.map((dept, index) => (
+            <option key={index} value={dept.department}>{dept.department}</option>
+          ))}
         </select>
         
-        <select className="text-sm border border-gray-300 rounded-md p-2 bg-white">
-          <option>All Categories</option>
-          <option>IoT & Smart Systems</option>
-          <option>Software Development</option>
-          <option>Hardware Project</option>
+        <select 
+          className="text-sm border border-gray-300 rounded-md p-2 bg-white"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          onBlur={handleFilterChange}
+        >
+          <option value="all">All Categories</option>
+          {categoryCounts && Object.keys(categoryCounts).map((category, index) => (
+            <option key={index} value={category}>{category}</option>
+          ))}
         </select>
         
-        <select className="text-sm border border-gray-300 rounded-md p-2 bg-white">
-          <option>All Evaluation Status</option>
-          <option>Pending Department Evaluation</option>
-          <option>Completed Department Evaluation</option>
-          <option>Pending Central Evaluation</option>
-          <option>Completed Central Evaluation</option>
+        <select 
+          className="text-sm border border-gray-300 rounded-md p-2 bg-white"
+          value={evaluationFilter}
+          onChange={(e) => setEvaluationFilter(e.target.value)}
+          onBlur={handleFilterChange}
+        >
+          <option value="all">All Evaluation Status</option>
+          <option value="pendingDept">Pending Department Evaluation</option>
+          <option value="completedDept">Completed Department Evaluation</option>
+          <option value="pendingCentral">Pending Central Evaluation</option>
+          <option value="completedCentral">Completed Central Evaluation</option>
         </select>
+        
+        <button 
+          onClick={handleFilterChange}
+          className="px-3 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md"
+        >
+          Apply Filters
+        </button>
       </div>
       
       {/* Project Table */}
@@ -445,77 +612,75 @@ export default function ProjectFairAdmin() {
                     {error}
                   </td>
                 </tr>
-              ) : projects.length === 0 ? (
+              ) : filteredProjects.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No projects found
                   </td>
                 </tr>
-              ) : Array.isArray(projects) && projects.map((project: Project, index: number) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {project.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.department}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.team} ({project.members})
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.location}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex flex-col space-y-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        project.departmentEvaluation.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        Dept: {project.departmentEvaluation.status === 'completed' ? `${project.departmentEvaluation.score}%` : 'Pending'}
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        project.centralEvaluation.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        Central: {project.centralEvaluation.status === 'completed' ? `${project.centralEvaluation.score}%` : 'Pending'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Edit size={16} />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              ) : (
+                filteredProjects.map((project, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {project.id || project._id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {project.title}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {typeof project.department === 'string' ? project.department : project.department?.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {typeof project.team === 'string' ? project.team : project.team?.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {project.locationId ? (typeof project.locationId === 'string' ? project.locationId : project.locationId?.locationId) : 'Not Assigned'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex flex-col space-y-1">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          project.deptEvaluation?.completed 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          Dept: {project.deptEvaluation?.completed ? `${project.deptEvaluation.score}%` : 'Pending'}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          project.centralEvaluation?.completed 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          Central: {project.centralEvaluation?.completed ? `${project.centralEvaluation.score}%` : 'Pending'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
+                        <button 
+                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => {
+                            // Navigate to edit project page or show modal
+                            console.log('Edit project:', project._id);
+                          }}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          className="text-red-600 hover:text-red-900"
+                          onClick={() => handleDeleteProject(project._id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         
-        {/* Pagination */}
-        <div className="px-6 py-3 flex items-center justify-between border-t border-gray-200">
-          <div className="text-sm text-gray-700">
-            Showing <span className="font-medium">1</span> to <span className="font-medium">10</span> of <span className="font-medium">42</span> results
-          </div>
-          <div className="flex space-x-2">
-            <button className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-              Previous
-            </button>
-            <button className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
-              Next
-            </button>
-          </div>
-        </div>
+        {/* Pagination can be added here if needed */}
       </div>
     </div>
   );
@@ -525,7 +690,13 @@ export default function ProjectFairAdmin() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold">Jury Management</h3>
-        <button className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center">
+        <button 
+          className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center"
+          onClick={() => {
+            // Navigate to add jury page or show modal
+            console.log('Add jury member');
+          }}
+        >
           <Plus size={16} className="mr-1" />
           Add Jury Member
         </button>
@@ -534,16 +705,43 @@ export default function ProjectFairAdmin() {
       {/* Jury Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <div className="text-sm text-blue-500 mb-1">Department Jury Members</div>
-          <div className="text-2xl font-bold text-blue-700">12</div>
+        <div className="flex items-center">
+            <div className="bg-blue-100 p-3 rounded-lg mr-4">
+              <Users className="h-6 w-6 text-blue-700" />
+            </div>
+            <div>
+              <div className="text-sm text-blue-500">Department Jury</div>
+              <div className="text-2xl font-bold text-blue-700">
+                {juryMembers.filter(j => !j.roles.includes('admin')).length || 0}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-          <div className="text-sm text-purple-500 mb-1">Central Expert Jury</div>
-          <div className="text-2xl font-bold text-purple-700">4</div>
+          <div className="flex items-center">
+            <div className="bg-purple-100 p-3 rounded-lg mr-4">
+              <Award className="h-6 w-6 text-purple-700" />
+            </div>
+            <div>
+              <div className="text-sm text-purple-500">Central Experts</div>
+              <div className="text-2xl font-bold text-purple-700">
+                {juryMembers.filter(j => j.roles.includes('admin')).length || 0}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-          <div className="text-sm text-green-500 mb-1">Evaluations Completed</div>
-          <div className="text-2xl font-bold text-green-700">18/42</div>
+          <div className="flex items-center">
+            <div className="bg-green-100 p-3 rounded-lg mr-4">
+              <CheckCircle className="h-6 w-6 text-green-700" />
+            </div>
+            <div>
+              <div className="text-sm text-green-500">Evaluations Completed</div>
+              <div className="text-2xl font-bold text-green-700">
+                {statistics?.evaluated || 0}/{statistics?.total || 0}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -560,13 +758,16 @@ export default function ProjectFairAdmin() {
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Department
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assigned Projects
+                  Projects
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -574,51 +775,75 @@ export default function ProjectFairAdmin() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {juryMembers.map((jury) => (
-                <tr key={jury.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {jury.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {jury.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      jury.type === 'central' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {jury.type === 'central' ? 'Central Expert' : 'Department'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {jury.department}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex items-center">
-                      <span className="font-medium">{jury.evaluatedProjects}/{jury.assignedProjects}</span>
-                      <div className="ml-2 w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-green-600" 
-                          style={{ width: `${(jury.evaluatedProjects / jury.assignedProjects) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        Assign Projects
-                      </button>
-                    </div>
+              {juryMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    No jury members found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                juryMembers.map((jury, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {jury._id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {jury.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {jury.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        jury.roles.includes('admin') 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {jury.roles.includes('admin') ? 'Central Expert' : 'Department'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {jury.department?.name || 'All Departments'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <span className="font-medium">0/0</span>
+                        <div className="ml-2 w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-green-600" 
+                            style={{ width: '0%' }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button className="text-blue-600 hover:text-blue-800">
+                        Assign Projects
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
     </div>
+  );
+  
+  // Use the existing LocationAssignmentsTab component
+  const renderLocationsTab = () => (
+    <LocationAssignmentsTab />
+  );
+  
+  // Use the existing ScheduleTab component
+  const renderScheduleTab = () => (
+    <ScheduleTab />
+  );
+
+  // Use the existing ResultsCertificatesTab component
+  const renderResultsTab = () => (
+    <ResultsCertificatesTab />
   );
   
   // Render the appropriate tab content
@@ -631,35 +856,11 @@ export default function ProjectFairAdmin() {
       case 'jury':
         return renderJuryTab();
       case 'locations':
-        // Import the locations tab component
-        return <div className="bg-white p-4 rounded">
-          <h3 className="text-lg font-medium mb-4">Location Assignment Module</h3>
-          <p className="text-gray-600 mb-2">This tab would contain the stall assignment interface where you can:</p>
-          <ul className="list-disc pl-5 mb-4 text-gray-600">
-            <li>View all stalls arranged by section</li>
-            <li>Assign projects to available stalls</li>
-            <li>See which stalls are already assigned</li>
-            <li>Manage unassigned projects</li>
-          </ul>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded">
-            Load Location Assignment Module
-          </button>
-        </div>;
+        return renderLocationsTab();
       case 'schedule':
-        // Import the schedule tab component
-        return <div className="bg-white p-4 rounded">
-          <h3 className="text-lg font-medium mb-4">Schedule Management Module</h3>
-          <p className="text-gray-600 mb-2">This tab would contain the schedule management interface where you can:</p>
-          <ul className="list-disc pl-5 mb-4 text-gray-600">
-            <li>View and edit the event timeline</li>
-            <li>Manage activity schedules and locations</li>
-            <li>Assign coordinators to activities</li>
-            <li>Send schedule notifications to participants</li>
-          </ul>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded">
-            Load Schedule Management Module
-          </button>
-        </div>;
+        return renderScheduleTab();
+      case 'results':
+        return renderResultsTab();
       default:
         return <div>Invalid tab</div>;
     }
@@ -667,39 +868,69 @@ export default function ProjectFairAdmin() {
 
   return (
     <div className="p-4">
-      <div className="flex space-x-4 mb-4">
+      {/* Event Selector */}
+      {events.length > 0 && (
+        <div className="mb-4">
+          <label htmlFor="event-selector" className="block text-sm font-medium text-gray-700 mb-1">
+            Select Event:
+          </label>
+          <select
+            id="event-selector"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64"
+            value={activeEvent}
+            onChange={(e) => setActiveEvent(e.target.value)}
+          >
+            {events.map((event) => (
+              <option key={event._id} value={event._id}>
+                {event.name} ({new Date(event.eventDate).toLocaleDateString()})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex flex-wrap space-x-2 mb-4">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 rounded ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded mb-2 ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           Overview
         </button>
         <button
           onClick={() => setActiveTab('projects')}
-          className={`px-4 py-2 rounded ${activeTab === 'projects' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded mb-2 ${activeTab === 'projects' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           Projects
         </button>
         <button
           onClick={() => setActiveTab('jury')}
-          className={`px-4 py-2 rounded ${activeTab === 'jury' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded mb-2 ${activeTab === 'jury' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           Jury
         </button>
         <button
           onClick={() => setActiveTab('locations')}
-          className={`px-4 py-2 rounded ${activeTab === 'locations' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded mb-2 ${activeTab === 'locations' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           Locations
         </button>
         <button
           onClick={() => setActiveTab('schedule')}
-          className={`px-4 py-2 rounded ${activeTab === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded mb-2 ${activeTab === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           Schedule
         </button>
+        <button
+          onClick={() => setActiveTab('results')}
+          className={`px-4 py-2 rounded mb-2 ${activeTab === 'results' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+        >
+          Results & Certificates
+        </button>
       </div>
+
+      {/* Tab Content */}
       {renderTabContent()}
     </div>
   );
-};
+}

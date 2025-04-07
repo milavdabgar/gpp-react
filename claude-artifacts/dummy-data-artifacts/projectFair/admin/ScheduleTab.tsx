@@ -72,7 +72,7 @@ const ScheduleTab = () => {
             
             {/* Time grid lines */}
             <div className="h-full grid grid-cols-12 absolute inset-0">
-              {Array(12).fill().map((_, i) => (
+              {Array.from({length: 12}).map((_, i) => (
                 <div key={i} className="border-l border-gray-200 h-full"></div>
               ))}
             </div>
@@ -111,7 +111,7 @@ const ScheduleTab = () => {
                 
                 return (
                   <div
-                    key={event.id || index}
+                    key={index}
                     className="absolute h-20 rounded-lg border border-blue-200 bg-blue-50 p-2 overflow-hidden text-xs"
                     style={{
                       left: `${startPos}%`,
@@ -210,7 +210,7 @@ const ScheduleTab = () => {
                 
                 {/* Add new row */}
                 <tr>
-                  <td colSpan="6" className="px-6 py-4">
+                  <td colSpan={6} className="px-6 py-4">
                     <button className="w-full text-blue-600 hover:text-blue-800 text-sm border border-dashed border-blue-300 rounded py-2 hover:bg-blue-50">
                       <Plus size={16} className="inline mr-1" />
                       Add New Event
@@ -267,7 +267,7 @@ const ScheduleTab = () => {
               Message
             </label>
             <textarea
-              rows="3"
+              rows={3}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               placeholder="Optional message to include with the schedule"
             ></textarea>

@@ -1,33 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Project } from '../../../types/project.types';
+import { getAllProjects, exportProjectsToCsv, importProjectsFromCsv, createSampleProjects } from '../../../services/projectApi';
 import { 
   Users, 
   Award, 
   Map, 
-  BarChart, 
-  ChevronDown, 
-  Settings, 
   Download, 
-  Filter, 
-  Mail, 
-  Clipboard, 
-  Clock, 
   CheckCircle, 
   AlertTriangle, 
-  FileText, 
-  Printer, 
   Activity, 
   User,
   Edit, 
   Trash2, 
   Plus, 
   Search, 
-  Calendar, 
-  Info 
+  Calendar
 } from 'lucide-react';
 
-const ProjectFairAdmin = () => {
+export default function ProjectFairAdmin() {
   const [activeTab, setActiveTab] = useState('overview');
-  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllProjects();
+        setProjects(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load projects');
+        console.error('Error fetching projects:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleExport = async () => {
+    try {
+      await exportProjectsToCsv();
+    } catch (err) {
+      console.error('Error exporting projects:', err);
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      await importProjectsFromCsv(file);
+      // Refresh the projects list
+      const data = await getAllProjects();
+      setProjects(data);
+    } catch (err) {
+      console.error('Error importing projects:', err);
+      setError('Failed to import projects');
+    }
+  };
+
+  const handleCreateSampleProjects = async () => {
+    try {
+      await createSampleProjects();
+      // Refresh the projects list
+      const data = await getAllProjects();
+      setProjects(data);
+    } catch (err) {
+      console.error('Error creating sample projects:', err);
+      setError('Failed to create sample projects');
+    }
+  };
+
   // Sample statistics data
   const stats = {
     totalProjects: 42,
@@ -45,43 +97,6 @@ const ProjectFairAdmin = () => {
     { department: 'Civil Engineering', count: 8, evaluatedCount: 3 },
     { department: 'Mechanical Engineering', count: 6, evaluatedCount: 2 },
     { department: 'Electronics & Communication', count: 3, evaluatedCount: 1 }
-  ];
-  
-  // Sample project list
-  const projects = [
-    {
-      id: 'NPNI-2025-0042',
-      title: 'Smart Waste Management System',
-      department: 'Computer Engineering',
-      team: 'Team Innovate',
-      members: 3,
-      location: 'Stall A-12',
-      registrationDate: '2025-04-01',
-      departmentEvaluation: { status: 'completed', score: 85 },
-      centralEvaluation: { status: 'pending', score: null }
-    },
-    {
-      id: 'NPNI-2025-0056',
-      title: 'Solar Powered Water Purifier',
-      department: 'Electrical Engineering',
-      team: 'EcoSolutions',
-      members: 4,
-      location: 'Stall B-08',
-      registrationDate: '2025-04-02',
-      departmentEvaluation: { status: 'completed', score: 92 },
-      centralEvaluation: { status: 'pending', score: null }
-    },
-    {
-      id: 'NPNI-2025-0073',
-      title: 'Structural Health Monitoring Device',
-      department: 'Civil Engineering',
-      team: 'BuildTech',
-      members: 2,
-      location: 'Stall C-15',
-      registrationDate: '2025-04-03',
-      departmentEvaluation: { status: 'completed', score: 78 },
-      centralEvaluation: { status: 'pending', score: null }
-    }
   ];
   
   // Sample jury members
@@ -287,7 +302,7 @@ const ProjectFairAdmin = () => {
         </div>
         
         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
-          {projects.map((project, index) => (
+          {Array.isArray(projects) && projects.map((project, index) => (
             <div key={index} className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-xs text-gray-500 block">{project.id}</span>
@@ -332,10 +347,32 @@ const ProjectFairAdmin = () => {
             />
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
           </div>
-          <button className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center">
-            <Plus size={16} className="mr-1" />
-            Add Project
-          </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={handleCreateSampleProjects}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md shadow-sm"
+            >
+              <Plus size={16} className="mr-2" />
+              Add Sample Projects
+            </button>
+            <label className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm cursor-pointer">
+              <Plus size={16} className="mr-2" />
+              Import CSV
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleImport}
+                className="hidden"
+              />
+            </label>
+            <button
+              onClick={handleExport}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm"
+            >
+              <Download size={16} className="mr-2" />
+              Export List
+            </button>
+          </div>
         </div>
       </div>
       
@@ -364,11 +401,6 @@ const ProjectFairAdmin = () => {
           <option>Pending Central Evaluation</option>
           <option>Completed Central Evaluation</option>
         </select>
-        
-        <button className="ml-auto text-sm text-blue-600 hover:text-blue-800 flex items-center">
-          <Download size={14} className="mr-1" />
-          Export List
-        </button>
       </div>
       
       {/* Project Table */}
@@ -401,7 +433,25 @@ const ProjectFairAdmin = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {projects.map((project, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    Loading projects...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              ) : projects.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    No projects found
+                  </td>
+                </tr>
+              ) : Array.isArray(projects) && projects.map((project: Project, index: number) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {project.id}
@@ -609,3 +659,47 @@ const ProjectFairAdmin = () => {
           <button className="bg-blue-600 text-white px-4 py-2 rounded">
             Load Schedule Management Module
           </button>
+        </div>;
+      default:
+        return <div>Invalid tab</div>;
+    }
+  };
+
+  return (
+    <div className="p-4">
+      <div className="flex space-x-4 mb-4">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-4 py-2 rounded ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('projects')}
+          className={`px-4 py-2 rounded ${activeTab === 'projects' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Projects
+        </button>
+        <button
+          onClick={() => setActiveTab('jury')}
+          className={`px-4 py-2 rounded ${activeTab === 'jury' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Jury
+        </button>
+        <button
+          onClick={() => setActiveTab('locations')}
+          className={`px-4 py-2 rounded ${activeTab === 'locations' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Locations
+        </button>
+        <button
+          onClick={() => setActiveTab('schedule')}
+          className={`px-4 py-2 rounded ${activeTab === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Schedule
+        </button>
+      </div>
+      {renderTabContent()}
+    </div>
+  );
+};

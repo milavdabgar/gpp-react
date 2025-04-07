@@ -1,11 +1,15 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { ChevronLeft, Upload, Plus, Trash2, Info, Check, AlertCircle } from 'lucide-react';
+import projectService from '../../../services/projectApi';
+import { useAuth } from '../../../context/AuthContext';
+import { toast } from 'react-toastify';
 
 interface TeamMember {
   id: number;
   name: string;
-  enrollment: string;
+  enrollmentNo: string;
   role: string;
+  isLeader: boolean;
 }
 
 interface FormData {
@@ -20,15 +24,45 @@ interface FormData {
     otherRequirements: string;
   };
   guide: {
+    userId: string;
     name: string;
     department: string;
     contactNumber: string;
   };
+  eventId: string;
 }
 
-const ProjectRegistrationForm = () => {
+interface Department {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+interface Faculty {
+  _id: string;
+  name: string;
+  department: any;
+  email: string;
+}
+
+interface Event {
+  _id: string;
+  name: string;
+  eventDate: string;
+  registrationStartDate: string;
+  registrationEndDate: string;
+}
+
+interface ProjectRegistrationFormProps {
+  event?: any;
+}
+
+const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event }) => {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([{ id: 1, name: '', enrollment: '', role: '' }]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
+    { id: 1, name: user?.name || '', enrollmentNo: '', role: 'Team Leader', isLeader: true }
+  ]);
   const [formData, setFormData] = useState<FormData>({
     projectTitle: '',
     projectCategory: '',
@@ -41,17 +75,129 @@ const ProjectRegistrationForm = () => {
       otherRequirements: '',
     },
     guide: {
+      userId: '',
       name: '',
       department: '',
       contactNumber: '',
-    }
+    },
+    eventId: event?._id || ''
   });
+  
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [activeEvents, setActiveEvents] = useState<Event[]>(event ? [event] : []);
+  const [teamId, setTeamId] = useState<string>('');
+  const [projectId, setProjectId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [fileSelected, setFileSelected] = useState<File | null>(null);
+  
+  // Project categories
+  const categories = [
+    'Software Development',
+    'Hardware Project',
+    'IoT & Smart Systems',
+    'Sustainable Technology',
+    'Industry Problem Solution',
+    'Research & Innovation'
+  ];
+  
+  // Load initial data when component mounts
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
+  
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch departments
+      const deptsResponse = await fetch('/api/departments');
+      const deptsData = await deptsResponse.json();
+      setDepartments(deptsData.data.departments || []);
+      
+      // Fetch faculties for guide selection
+      const facultiesResponse = await fetch('/api/faculty');
+      const facultiesData = await facultiesResponse.json();
+      setFaculties(facultiesData.data.faculty || []);
+      
+      // Only fetch active events if no event was provided via props
+      if (!event) {
+        const eventsData = await projectService.getActiveEvents();
+        setActiveEvents(eventsData || []);
+        
+        if (eventsData && eventsData.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            eventId: eventsData[0]._id
+          }));
+        }
+      }
+      
+      // If user is logged in, add department and prefill first team member
+      if (user) {
+        // Set department from user if available
+        if (user.department) {
+          setFormData(prev => ({
+            ...prev,
+            department: typeof user.department === 'string' ? user.department : user.department._id
+          }));
+        }
+        
+        // Check if user has existing teams
+        await fetchUserTeams();
+      }
+    } catch (err) {
+      console.error('Error fetching initial data:', err);
+      toast.error('Failed to load initial data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchUserTeams = async () => {
+    try {
+      // Check if user has existing teams
+      const userTeams = await projectService.getMyTeams();
+      
+      if (userTeams && userTeams.length > 0) {
+        // Use the first team by default
+        const firstTeam = userTeams[0];
+        setTeamId(firstTeam._id);
+        
+        // Set team members from existing team
+        if (firstTeam.members && firstTeam.members.length > 0) {
+          const mappedMembers = firstTeam.members.map((member, index) => ({
+            id: index + 1,
+            name: member.name || (member.userId && typeof member.userId === 'object' ? member.userId.name : ''),
+            enrollmentNo: member.enrollmentNo || '',
+            role: member.role || (index === 0 ? 'Team Leader' : 'Member'),
+            isLeader: member.isLeader || index === 0
+          }));
+          
+          setTeamMembers(mappedMembers);
+        }
+        
+        // Check if user has existing projects for this team
+        const teamProjects = await projectService.getProjectsByTeam(firstTeam._id);
+        if (teamProjects && teamProjects.length > 0) {
+          // User already has a project, redirect to project view
+          // In a real app, you might want to redirect to a project details page
+          toast.info('You already have a project registered. Redirecting to your project.');
+          // Implementation of redirection would depend on your routing setup
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching user teams:', err);
+    }
+  };
   
   // Handle basic form field changes
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target;
     const name = target.name;
-    const value = target instanceof HTMLInputElement && target.type === 'checkbox' ? target.checked : target.value;
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox' 
+      ? target.checked 
+      : target.value;
     
     if (name.includes('.')) {
       const [parent, child] = name.split('.') as [keyof FormData, string];
@@ -72,13 +218,44 @@ const ProjectRegistrationForm = () => {
     }
   };
   
+  // Handle guide selection change
+  const handleGuideChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const selectedFacultyId = e.target.value;
+    const selectedFaculty = faculties.find(f => f._id === selectedFacultyId);
+    
+    if (selectedFaculty) {
+      setFormData({
+        ...formData,
+        guide: {
+          userId: selectedFaculty._id,
+          name: selectedFaculty.name,
+          department: typeof selectedFaculty.department === 'string' 
+            ? selectedFaculty.department 
+            : selectedFaculty.department._id,
+          contactNumber: formData.guide.contactNumber // Preserve existing contact number
+        }
+      });
+    }
+  };
+  
   // Handle team member changes
-  const handleTeamMemberChange = (id: number, field: keyof TeamMember, value: string) => {
+  const handleTeamMemberChange = (id: number, field: keyof TeamMember, value: string | boolean) => {
     setTeamMembers(
       teamMembers.map(member => 
         member.id === id ? { ...member, [field]: value } : member
       )
     );
+    
+    // If changing leader status, update other members accordingly
+    if (field === 'isLeader' && value === true) {
+      setTeamMembers(
+        teamMembers.map(member => 
+          member.id === id 
+            ? { ...member, isLeader: true, role: 'Team Leader' } 
+            : { ...member, isLeader: false, role: member.role === 'Team Leader' ? 'Member' : member.role }
+        )
+      );
+    }
   };
   
   // Add team member
@@ -86,15 +263,42 @@ const ProjectRegistrationForm = () => {
     if (teamMembers.length < 4) {
       setTeamMembers([
         ...teamMembers,
-        { id: Date.now(), name: '', enrollment: '', role: '' }
+        { id: Date.now(), name: '', enrollmentNo: '', role: 'Member', isLeader: false }
       ]);
+    } else {
+      toast.warning('Maximum team size is 4 members.');
     }
   };
   
   // Remove team member
   const removeTeamMember = (id: number) => {
     if (teamMembers.length > 1) {
-      setTeamMembers(teamMembers.filter(member => member.id !== id));
+      const updatedMembers = teamMembers.filter(member => member.id !== id);
+      
+      // If we're removing the leader, assign leadership to the first remaining member
+      const hasLeader = updatedMembers.some(member => member.isLeader);
+      if (!hasLeader && updatedMembers.length > 0) {
+        updatedMembers[0].isLeader = true;
+        updatedMembers[0].role = 'Team Leader';
+      }
+      
+      setTeamMembers(updatedMembers);
+    } else {
+      toast.warning('Team must have at least one member.');
+    }
+  };
+  
+  // Handle file selection
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('File size exceeds 5MB limit');
+        return;
+      }
+      
+      setFileSelected(file);
+      toast.success('File selected successfully');
     }
   };
   
@@ -102,33 +306,127 @@ const ProjectRegistrationForm = () => {
   const nextStep = () => setStep(step + 1);
   const prevStep = () => setStep(step - 1);
   
-  // Department options
-  const departments = [
-    'Computer Engineering',
-    'Civil Engineering',
-    'Electrical Engineering',
-    'Mechanical Engineering',
-    'Electronics & Communication'
-  ];
+  // Form validation
+  const validateStep = (currentStep: number): boolean => {
+    switch (currentStep) {
+      case 1:
+        if (!formData.projectTitle) {
+          toast.error('Project title is required');
+          return false;
+        }
+        if (!formData.projectCategory) {
+          toast.error('Project category is required');
+          return false;
+        }
+        if (!formData.department) {
+          toast.error('Department is required');
+          return false;
+        }
+        if (!formData.abstract || formData.abstract.length < 50) {
+          toast.error('Please provide a detailed abstract (minimum 50 characters)');
+          return false;
+        }
+        return true;
+      
+      case 2:
+        // Validate team members
+        for (const member of teamMembers) {
+          if (!member.name) {
+            toast.error('All team members must have a name');
+            return false;
+          }
+          if (!member.enrollmentNo) {
+            toast.error('All team members must have an enrollment number');
+            return false;
+          }
+        }
+        
+        // Ensure at least one leader
+        if (!teamMembers.some(member => member.isLeader)) {
+          toast.error('Team must have a designated leader');
+          return false;
+        }
+        
+        return true;
+      
+      case 3:
+        if (!formData.guide.name && !formData.guide.userId) {
+          toast.error('Please select or enter a guide');
+          return false;
+        }
+        if (!formData.guide.contactNumber) {
+          toast.error('Guide contact number is required');
+          return false;
+        }
+        return true;
+      
+      default:
+        return true;
+    }
+  };
   
-  // Project categories
-  const categories = [
-    'Software Development',
-    'Hardware Project',
-    'IoT & Smart Systems',
-    'Sustainable Technology',
-    'Industry Problem Solution',
-    'Research & Innovation'
-  ];
-  
-  // Submit form handler
-  const handleSubmit = (e: FormEvent) => {
+  // Handle form submission
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    // Form validation would go here
+    if (!validateStep(3)) return;
     
-    // For demo, just show success
-    setStep(4); // Move to success step
+    try {
+      setLoading(true);
+      
+      // Step 1: Create or use existing team
+      let currentTeamId = teamId;
+      if (!currentTeamId) {
+        // Create a team first
+        const teamData = {
+          name: `Team ${teamMembers[0].name.split(' ')[0]}`, // Use first name of first member
+          department: formData.department,
+          members: teamMembers.map(member => ({
+            userId: user?._id, // For simplicity, assign all members to current user
+            name: member.name,
+            enrollmentNo: member.enrollmentNo,
+            role: member.role,
+            isLeader: member.isLeader
+          })),
+          eventId: formData.eventId
+        };
+        
+        const teamResponse = await projectService.createTeam(teamData);
+        currentTeamId = teamResponse._id;
+      }
+      
+      // Step 2: Create the project
+      const projectData = {
+        title: formData.projectTitle,
+        category: formData.projectCategory,
+        abstract: formData.abstract,
+        department: formData.department,
+        requirements: formData.requirements,
+        guide: formData.guide,
+        teamId: currentTeamId,
+        eventId: formData.eventId,
+        status: 'submitted'
+      };
+      
+      const projectResponse = await projectService.createProject(projectData);
+      setProjectId(projectResponse._id);
+      
+      // Step 3: Upload poster/image if selected
+      if (fileSelected) {
+        // This would typically be implemented with a file upload API
+        // For now, we'll just simulate success
+        console.log('Uploading file:', fileSelected.name);
+      }
+      
+      // Move to success step
+      setStep(4);
+      toast.success('Project registered successfully!');
+    } catch (err) {
+      console.error('Error registering project:', err);
+      toast.error('Failed to register project');
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -137,7 +435,7 @@ const ProjectRegistrationForm = () => {
       <div className="bg-blue-700 text-white p-4 rounded-t-lg flex items-center justify-between">
         <h2 className="text-xl font-semibold">Project Registration - New Palanpur for New India</h2>
         <div className="text-sm bg-blue-600 px-2 py-1 rounded">
-          April 9, 2025
+          {activeEvents.length > 0 ? new Date(activeEvents[0].eventDate).toLocaleDateString() : 'Event Date TBD'}
         </div>
       </div>
       
@@ -216,8 +514,8 @@ const ProjectRegistrationForm = () => {
                   required
                 >
                   <option value="">Select Department</option>
-                  {departments.map((dept, index) => (
-                    <option key={index} value={dept}>{dept}</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept._id}>{dept.name}</option>
                   ))}
                 </select>
               </div>
@@ -253,20 +551,33 @@ const ProjectRegistrationForm = () => {
                 <p className="text-xs text-gray-400">
                   Maximum file size: 5MB (JPG, PNG, PDF)
                 </p>
-                <button
-                  type="button"
-                  className="mt-4 px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-md hover:bg-blue-100"
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={handleFileChange}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="mt-4 px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-md hover:bg-blue-100 cursor-pointer"
                 >
-                  Upload File
-                </button>
+                  {fileSelected ? 'Change File' : 'Upload File'}
+                </label>
+                {fileSelected && (
+                  <p className="mt-2 text-sm text-green-600">
+                    Selected: {fileSelected.name}
+                  </p>
+                )}
               </div>
             </div>
             
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={nextStep}
+                onClick={() => validateStep(1) && nextStep()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
               >
                 Next: Team Information
               </button>
@@ -287,7 +598,7 @@ const ProjectRegistrationForm = () => {
                 <div key={member.id} className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
                   <div className="flex justify-between mb-2">
                     <h4 className="font-medium text-gray-700">
-                      {index === 0 ? 'Team Leader' : `Team Member ${index}`}
+                      {member.isLeader ? 'Team Leader' : `Team Member ${index}`}
                     </h4>
                     {index > 0 && (
                       <button
@@ -320,14 +631,14 @@ const ProjectRegistrationForm = () => {
                       </label>
                       <input
                         type="text"
-                        value={member.enrollment}
-                        onChange={(e) => handleTeamMemberChange(member.id, 'enrollment', e.target.value)}
+                        value={member.enrollmentNo}
+                        onChange={(e) => handleTeamMemberChange(member.id, 'enrollmentNo', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
                     </div>
                     
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Role in Project
                       </label>
@@ -338,6 +649,19 @@ const ProjectRegistrationForm = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="e.g., Frontend Developer, Hardware Design, etc."
                       />
+                    </div>
+                    
+                    <div className="flex items-center mt-6">
+                      <input
+                        type="checkbox"
+                        id={`leader-${member.id}`}
+                        checked={member.isLeader}
+                        onChange={(e) => handleTeamMemberChange(member.id, 'isLeader', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor={`leader-${member.id}`} className="ml-2 block text-sm text-gray-700">
+                        This member is the team leader
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -365,8 +689,9 @@ const ProjectRegistrationForm = () => {
               </button>
               <button
                 type="button"
-                onClick={nextStep}
+                onClick={() => validateStep(2) && nextStep()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
               >
                 Next: Requirements & Guide
               </button>
@@ -448,6 +773,24 @@ const ProjectRegistrationForm = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Guide <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.guide.userId}
+                    onChange={handleGuideChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a Guide</option>
+                    {faculties.map((faculty) => (
+                      <option key={faculty._id} value={faculty._id}>
+                        {faculty.name} - {typeof faculty.department === 'object' ? faculty.department.name : faculty.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Guide Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -458,24 +801,9 @@ const ProjectRegistrationForm = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="guide.department"
-                    value={formData.guide.department}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((dept, index) => (
-                      <option key={index} value={dept}>{dept}</option>
-                    ))}
-                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Auto-filled when you select a guide, or enter manually if your guide is not listed
+                  </p>
                 </div>
                 
                 <div className="sm:col-span-2">
@@ -503,7 +831,7 @@ const ProjectRegistrationForm = () => {
                     <p>By submitting this form, you confirm that:</p>
                     <ul className="list-disc ml-4 mt-1 space-y-1">
                       <li>All team members will be present during the project fair</li>
-                      <li>Your project is ready for demonstration on April 9, 2025</li>
+                      <li>Your project is ready for demonstration on {activeEvents.length > 0 ? new Date(activeEvents[0].eventDate).toLocaleDateString() : 'event day'}</li>
                       <li>Your guide has approved this project submission</li>
                     </ul>
                   </div>
@@ -516,14 +844,24 @@ const ProjectRegistrationForm = () => {
                 type="button"
                 onClick={prevStep}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                disabled={loading}
               >
                 <ChevronLeft size={16} className="inline mr-1" /> Back
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
               >
-                Submit Registration
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : 'Submit Registration'}
               </button>
             </div>
           </div>
@@ -544,11 +882,13 @@ const ProjectRegistrationForm = () => {
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 text-left">
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-500">Project ID:</span>
-                <span className="text-sm font-semibold">NPNI-2025-0042</span>
+                <span className="text-sm font-semibold">{projectId || 'NPNI-2025-0042'}</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-500">Department:</span>
-                <span className="text-sm font-semibold">{formData.department}</span>
+                <span className="text-sm font-semibold">
+                  {departments.find(d => d._id === formData.department)?.name || 'Department'}
+                </span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-500">Category:</span>
@@ -567,8 +907,8 @@ const ProjectRegistrationForm = () => {
                   <h4 className="text-sm font-medium text-blue-800">Next Steps</h4>
                   <ul className="mt-1 text-sm text-blue-700 list-disc ml-4 space-y-1">
                     <li>You'll receive a confirmation email with all details</li>
-                    <li>Your stall/booth assignment will be shared on April 7th</li>
-                    <li>Arrive by 8:30 AM on April 9th for setup</li>
+                    <li>Your stall/booth assignment will be shared two days before the event</li>
+                    <li>Arrive by 8:30 AM on event day for setup</li>
                     <li>Department jury evaluation will be from 10:00 AM - 12:00 PM</li>
                     <li>Central jury evaluation will be from 2:00 PM - 4:00 PM</li>
                   </ul>
@@ -577,10 +917,18 @@ const ProjectRegistrationForm = () => {
             </div>
             
             <div className="flex space-x-3 justify-center">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button
+                type="button"
+                onClick={() => window.print()} 
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 Download Confirmation
               </button>
-              <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500">
+              <button
+                type="button"
+                onClick={() => window.location.href = '/project-fair'}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
                 Back to Dashboard
               </button>
             </div>

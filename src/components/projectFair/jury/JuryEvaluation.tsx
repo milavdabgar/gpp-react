@@ -1,18 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, User, Check, Filter, CheckCircle, BarChart } from 'lucide-react';
-
-interface Project {
-  id: string;
-  title: string;
-  category: string;
-  department: string;
-  team: string;
-  members: number;
-  location: string;
-  status: 'pending' | 'evaluated';
-  score?: number;
-  abstract: string;
-}
+import projectService from '../../../services/projectApi';
+import { Project, EvaluationData } from '../../../types/project.types';
+import { useAuth } from '../../../context/AuthContext';
+import { toast } from 'react-toastify';
 
 interface EvaluationCriterion {
   id: string;
@@ -25,49 +16,19 @@ interface Scores {
   [key: string]: number;
 }
 
-const JuryEvaluation = () => {
+const JuryEvaluation: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('assigned');
   const [evaluationType, setEvaluationType] = useState<'department' | 'central'>('department');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'evaluate'
-  
-  // Sample projects data
-  const projects = [
-    {
-      id: 'NPNI-2025-0042',
-      title: 'Smart Waste Management System',
-      category: 'IoT & Smart Systems',
-      department: 'Computer Engineering',
-      team: 'Team Innovate',
-      members: 3,
-      location: 'Stall A-12',
-      status: 'pending' as const,
-      abstract: 'A smart waste management system that uses IoT sensors to monitor waste levels in bins and optimize collection routes for municipal workers.'
-    },
-    {
-      id: 'NPNI-2025-0056',
-      title: 'Solar Powered Water Purifier',
-      category: 'Sustainable Technology',
-      department: 'Electrical Engineering',
-      team: 'EcoSolutions',
-      members: 4,
-      location: 'Stall B-08',
-      status: 'pending' as const,
-      abstract: 'A portable water purification system powered entirely by solar energy, designed for rural areas with limited electricity access.'
-    },
-    {
-      id: 'NPNI-2025-0073',
-      title: 'Structural Health Monitoring Device',
-      category: 'Hardware Project',
-      department: 'Civil Engineering',
-      team: 'BuildTech',
-      members: 2,
-      location: 'Stall C-15',
-      status: 'evaluated' as const,
-      score: 82,
-      abstract: 'A low-cost device that monitors the structural health of buildings and bridges, providing early warnings for potential failures.'
-    }
-  ];
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [evaluatedProjects, setEvaluatedProjects] = useState<Project[]>([]);
+  const [pendingProjects, setPendingProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [scores, setScores] = useState<Scores>({});
+  const [comments, setComments] = useState('');
   
   // Evaluation criteria based on jury type
   const evaluationCriteria: Record<'department' | 'central', EvaluationCriterion[]> = {
@@ -87,11 +48,95 @@ const JuryEvaluation = () => {
       { id: 'presentation', name: 'Presentation Quality', description: 'Professional presentation and communication', maxScore: 15 }
     ]
   };
-  
-  // Initial scores state
-  const [scores, setScores] = useState<Scores>({});
-  const [comments, setComments] = useState('');
-  
+
+  // Load projects when component mounts or evaluation type changes
+  useEffect(() => {
+    fetchProjects();
+  }, [evaluationType]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const data = await projectService.getProjectsForJury(evaluationType);
+      
+      if (data) {
+        // Split projects into evaluated and pending
+        const evaluated = data.evaluatedProjects || [];
+        const pending = data.pendingProjects || [];
+        
+        setEvaluatedProjects(evaluated);
+        setPendingProjects(pending);
+        setProjects([...evaluated, ...pending]);
+      } else {
+        setEvaluatedProjects([]);
+        setPendingProjects([]);
+        setProjects([]);
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError('Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Start evaluating a project
+  const startEvaluation = (project: Project) => {
+    setCurrentProject(project);
+    setViewMode('evaluate');
+    
+    // Initialize scores
+    const initialScores: Scores = {};
+    evaluationCriteria[evaluationType].forEach((criteria) => {
+      initialScores[criteria.id] = 0;
+    });
+    
+    // Use existing scores if available
+    if (evaluationType === 'department' && project.deptEvaluation?.completed) {
+      setComments(project.deptEvaluation.feedback || '');
+      
+      // If detailed criteria scoring is available
+      if (project.deptEvaluation.criteria) {
+        Object.keys(project.deptEvaluation.criteria).forEach(key => {
+          initialScores[key] = project.deptEvaluation.criteria?.[key] || 0;
+        });
+      } else {
+        // Distribute the score evenly if no detailed scoring is available
+        const totalMaxScore = evaluationCriteria.department.reduce((sum, criteria) => sum + criteria.maxScore, 0);
+        const totalScore = project.deptEvaluation.score || 0;
+        
+        evaluationCriteria.department.forEach(criteria => {
+          const proportion = criteria.maxScore / totalMaxScore;
+          initialScores[criteria.id] = Math.round(totalScore * proportion);
+        });
+      }
+    } else if (evaluationType === 'central' && project.centralEvaluation?.completed) {
+      setComments(project.centralEvaluation.feedback || '');
+      
+      // If detailed criteria scoring is available
+      if (project.centralEvaluation.criteria) {
+        Object.keys(project.centralEvaluation.criteria).forEach(key => {
+          initialScores[key] = project.centralEvaluation.criteria?.[key] || 0;
+        });
+      } else {
+        // Distribute the score evenly if no detailed scoring is available
+        const totalMaxScore = evaluationCriteria.central.reduce((sum, criteria) => sum + criteria.maxScore, 0);
+        const totalScore = project.centralEvaluation.score || 0;
+        
+        evaluationCriteria.central.forEach(criteria => {
+          const proportion = criteria.maxScore / totalMaxScore;
+          initialScores[criteria.id] = Math.round(totalScore * proportion);
+        });
+      }
+    } else {
+      setComments('');
+    }
+    
+    setScores(initialScores);
+  };
+
   // Handle scoring change
   const handleScoreChange = (criteriaId: string, value: string) => {
     setScores(prev => ({
@@ -99,56 +144,14 @@ const JuryEvaluation = () => {
       [criteriaId]: parseInt(value)
     }));
   };
-  
-  // Start evaluating a project
-  const startEvaluation = (project: Project) => {
-    setCurrentProject(project);
-    setViewMode('evaluate');
-    // Initialize scores
-    const initialScores: Scores = {};
-    evaluationCriteria[evaluationType].forEach((criteria: EvaluationCriterion) => {
-      initialScores[criteria.id] = 0;
-    });
-    setScores(initialScores);
-    setComments('');
-  };
-  
-  // Submit evaluation
-  const submitEvaluation = () => {
-    if (!currentProject) return;
-    // Calculate total score
-    const totalScore = Object.values(scores).reduce((sum: number, score: number) => sum + score, 0);
-    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum: number, criteria: EvaluationCriterion) => sum + criteria.maxScore, 0);
-    
-    // Here you would send the data to your backend
-    console.log('Submitting evaluation:', {
-      projectId: currentProject.id,
-      scores,
-      totalScore,
-      percentageScore: (totalScore / maxPossibleScore) * 100,
-      comments,
-      juryType: evaluationType
-    });
-    
-    // For demo, just go back to list
-    setViewMode('list');
-    
-    // Update project status in our local data (this would come from backend in real app)
-    const updatedProjects = projects.map(p => 
-      p.id === currentProject.id 
-        ? { ...p, status: 'evaluated', score: Math.round((totalScore / maxPossibleScore) * 100) } 
-        : p
-    );
-    
-    // Reset state
-    setCurrentProject(null);
-  };
-  
+
   // Calculate total score for current evaluation
   const calculateTotalScore = (): { current: number; max: number; percentage: number } => {
     if (!currentProject) return { current: 0, max: 0, percentage: 0 };
-    const totalScore = Object.values(scores).reduce((sum: number, score: number) => sum + score, 0);
-    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum: number, criteria: EvaluationCriterion) => sum + criteria.maxScore, 0);
+    
+    const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum, criteria) => sum + criteria.maxScore, 0);
+    
     return {
       current: totalScore,
       max: maxPossibleScore,
@@ -156,16 +159,60 @@ const JuryEvaluation = () => {
     };
   };
 
-  // Toggle between department and central jury views
-  const toggleEvaluationType = () => {
+  // Submit evaluation
+  const submitEvaluation = async () => {
     if (!currentProject) return;
-    setEvaluationType(evaluationType === 'department' ? 'central' : 'department');
-    if (viewMode === 'evaluate') {
+    
+    try {
+      setLoading(true);
+      
+      // Calculate total score
+      const { current, max, percentage } = calculateTotalScore();
+      
+      // Prepare evaluation data
+      const evaluationData: EvaluationData = {
+        score: percentage,
+        feedback: comments,
+        criteria: scores
+      };
+      
+      // Submit to the appropriate endpoint based on evaluation type
+      if (evaluationType === 'department') {
+        await projectService.evaluateProjectByDepartment(currentProject._id, evaluationData);
+      } else {
+        await projectService.evaluateProjectByCentral(currentProject._id, evaluationData);
+      }
+      
+      toast.success('Evaluation submitted successfully');
+      
+      // Refresh project data
+      await fetchProjects();
+      
+      // Return to list view
       setViewMode('list');
       setCurrentProject(null);
+    } catch (err) {
+      console.error('Error submitting evaluation:', err);
+      toast.error('Failed to submit evaluation');
+    } finally {
+      setLoading(false);
     }
   };
-  
+
+  // Toggle between department and central jury views
+  const toggleEvaluationType = () => {
+    if (viewMode === 'evaluate') {
+      // If in evaluation mode, ask for confirmation before switching
+      if (window.confirm('Switching evaluation type will discard unsaved changes. Continue?')) {
+        setEvaluationType(evaluationType === 'department' ? 'central' : 'department');
+        setViewMode('list');
+        setCurrentProject(null);
+      }
+    } else {
+      setEvaluationType(evaluationType === 'department' ? 'central' : 'department');
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto bg-white rounded-lg shadow">
       {/* Header */}
@@ -216,18 +263,11 @@ const JuryEvaluation = () => {
             <div className="flex items-center justify-between mb-4 bg-gray-50 p-3 rounded-lg">
               <div className="text-sm text-gray-600 flex items-center">
                 <Filter size={16} className="mr-2" />
-                <span className="font-medium">Filters:</span>
+                <span className="font-medium">Status:</span>
                 <select className="ml-2 border border-gray-300 rounded px-2 py-1 text-xs">
-                  <option>All Departments</option>
-                  <option>Computer Engineering</option>
-                  <option>Electrical Engineering</option>
-                  <option>Civil Engineering</option>
-                </select>
-                <select className="ml-2 border border-gray-300 rounded px-2 py-1 text-xs">
-                  <option>All Categories</option>
-                  <option>IoT & Smart Systems</option>
-                  <option>Software Development</option>
-                  <option>Hardware Project</option>
+                  <option value="all">All Projects</option>
+                  <option value="pending">Pending Evaluation</option>
+                  <option value="completed">Evaluation Completed</option>
                 </select>
               </div>
               <div className="bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs flex items-center">
@@ -236,103 +276,178 @@ const JuryEvaluation = () => {
               </div>
             </div>
             
-            {/* Project cards */}
-            <div className="space-y-4">
-              {projects
-                .filter(project => 
-                  (activeTab === 'assigned' && project.status === 'pending') || 
-                  (activeTab === 'evaluated' && project.status === 'evaluated')
-                )
-                .map(project => (
-                  <div key={project.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-3 flex justify-between items-center border-b border-gray-200">
-                      <div>
-                        <span className="text-xs font-medium text-gray-500">{project.id}</span>
-                        <h3 className="font-medium text-lg">{project.title}</h3>
-                      </div>
-                      <div className="flex items-center">
-                        {project.status === 'evaluated' && (
-                          <div className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded mr-2">
-                            <CheckCircle size={14} className="mr-1" />
-                            <span className="text-xs font-medium">{project.score}%</span>
+            {loading ? (
+              <div className="text-center py-10">Loading projects...</div>
+            ) : error ? (
+              <div className="text-center py-10 text-red-500">{error}</div>
+            ) : (
+              <>
+                {/* Project cards */}
+                <div className="space-y-4">
+                  {activeTab === 'assigned' ? (
+                    pendingProjects.length > 0 ? pendingProjects.map((project, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 p-3 flex justify-between items-center border-b border-gray-200">
+                          <div>
+                            <span className="text-xs font-medium text-gray-500">{project._id}</span>
+                            <h3 className="font-medium text-lg">{project.title}</h3>
                           </div>
-                        )}
-                        {project.status === 'pending' && (
-                          <button
-                            onClick={() => startEvaluation(project)}
-                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                          >
-                            Start Evaluation
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                        <div>
-                          <span className="text-xs text-gray-500 block">Department</span>
-                          <span className="text-sm font-medium">{project.department}</span>
-                        </div>
-                        <div>
-                          <span className="text-xs text-gray-500 block">Category</span>
-                          <span className="text-sm font-medium">{project.category}</span>
-                        </div>
-                        <div>
-                          <span className="text-xs text-gray-500 block">Location</span>
-                          <span className="text-sm font-medium">{project.location}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <span className="text-xs text-gray-500 block">Abstract</span>
-                        <p className="text-sm text-gray-700">{project.abstract}</p>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 mr-2">
-                            <User size={14} />
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => startEvaluation(project)}
+                              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                            >
+                              Start Evaluation
+                            </button>
                           </div>
-                          <span className="text-sm text-gray-600">{project.team} ({project.members} members)</span>
                         </div>
-                        {project.status === 'evaluated' && (
-                          <button
-                            onClick={() => startEvaluation(project)}
-                            className="text-sm text-blue-600 hover:text-blue-800"
-                          >
-                            View Evaluation
-                          </button>
-                        )}
+                        
+                        <div className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                            <div>
+                              <span className="text-xs text-gray-500 block">Department</span>
+                              <span className="text-sm font-medium">
+                                {typeof project.department === 'object' ? project.department.name : project.department}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500 block">Category</span>
+                              <span className="text-sm font-medium">{project.category}</span>
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500 block">Location</span>
+                              <span className="text-sm font-medium">
+                                {project.locationId ? 
+                                  (typeof project.locationId === 'object' ? project.locationId.locationId : project.locationId) 
+                                  : 'Not Assigned'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <span className="text-xs text-gray-500 block">Abstract</span>
+                            <p className="text-sm text-gray-700">{project.abstract}</p>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 mr-2">
+                                <User size={14} />
+                              </div>
+                              <span className="text-sm text-gray-600">
+                                {typeof project.team === 'object' ? project.team.name : project.team}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-            
-            {/* Progress summary */}
-            {activeTab === 'evaluated' && (
-              <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center mb-3">
-                  <BarChart size={18} className="text-blue-600 mr-2" />
-                  <h3 className="font-medium">Evaluation Progress</h3>
+                    )) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No pending projects found.
+                      </div>
+                    )
+                  ) : (
+                    evaluatedProjects.length > 0 ? evaluatedProjects.map((project, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 p-3 flex justify-between items-center border-b border-gray-200">
+                          <div>
+                            <span className="text-xs font-medium text-gray-500">{project._id}</span>
+                            <h3 className="font-medium text-lg">{project.title}</h3>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded mr-2">
+                              <CheckCircle size={14} className="mr-1" />
+                              <span className="text-xs font-medium">
+                                {evaluationType === 'department' ? 
+                                  (project.deptEvaluation?.score || 0) : 
+                                  (project.centralEvaluation?.score || 0)}%
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => startEvaluation(project)}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                            >
+                              View Evaluation
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                            <div>
+                              <span className="text-xs text-gray-500 block">Department</span>
+                              <span className="text-sm font-medium">
+                                {typeof project.department === 'object' ? project.department.name : project.department}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500 block">Category</span>
+                              <span className="text-sm font-medium">{project.category}</span>
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500 block">Location</span>
+                              <span className="text-sm font-medium">
+                                {project.locationId ? 
+                                  (typeof project.locationId === 'object' ? project.locationId.locationId : project.locationId) 
+                                  : 'Not Assigned'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <span className="text-xs text-gray-500 block">Feedback</span>
+                            <p className="text-sm text-gray-700">
+                              {evaluationType === 'department' ? 
+                                (project.deptEvaluation?.feedback || 'No feedback provided.') : 
+                                (project.centralEvaluation?.feedback || 'No feedback provided.')}
+                            </p>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 mr-2">
+                                <User size={14} />
+                              </div>
+                              <span className="text-sm text-gray-600">
+                                {typeof project.team === 'object' ? project.team.name : project.team}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No evaluated projects found.
+                      </div>
+                    )
+                  )}
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-3 rounded border border-gray-200">
-                    <div className="text-2xl font-bold text-green-600">2</div>
-                    <div className="text-sm text-gray-600">Evaluated</div>
+                {/* Progress summary */}
+                {activeTab === 'evaluated' && (
+                  <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center mb-3">
+                      <BarChart size={18} className="text-blue-600 mr-2" />
+                      <h3 className="font-medium">Evaluation Progress</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white p-3 rounded border border-gray-200">
+                        <div className="text-2xl font-bold text-green-600">{evaluatedProjects.length}</div>
+                        <div className="text-sm text-gray-600">Evaluated</div>
+                      </div>
+                      <div className="bg-white p-3 rounded border border-gray-200">
+                        <div className="text-2xl font-bold text-blue-600">{pendingProjects.length}</div>
+                        <div className="text-sm text-gray-600">Pending</div>
+                      </div>
+                      <div className="bg-white p-3 rounded border border-gray-200">
+                        <div className="text-2xl font-bold">{evaluatedProjects.length + pendingProjects.length}</div>
+                        <div className="text-sm text-gray-600">Total Assigned</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-white p-3 rounded border border-gray-200">
-                    <div className="text-2xl font-bold text-blue-600">1</div>
-                    <div className="text-sm text-gray-600">Pending</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border border-gray-200">
-                    <div className="text-2xl font-bold">3</div>
-                    <div className="text-sm text-gray-600">Total Assigned</div>
-                  </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -345,17 +460,19 @@ const JuryEvaluation = () => {
               {currentProject && (
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-xs text-gray-500">{currentProject.id}</span>
+                    <span className="text-xs text-gray-500">{currentProject._id}</span>
                     <h3 className="text-xl font-semibold mb-2">{currentProject.title}</h3>
                     <div className="flex flex-wrap gap-2 mb-3">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {currentProject.department}
+                        {typeof currentProject.department === 'object' ? currentProject.department.name : currentProject.department}
                       </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                         {currentProject.category}
                       </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {currentProject.location}
+                        {currentProject.locationId ? 
+                          (typeof currentProject.locationId === 'object' ? currentProject.locationId.locationId : currentProject.locationId) 
+                          : 'No Location'}
                       </span>
                     </div>
                   </div>
@@ -366,7 +483,6 @@ const JuryEvaluation = () => {
                 </div>
               )}
 
-              
               {currentProject && (
                 <p className="text-gray-700 mb-4">{currentProject.abstract}</p>
               )}
@@ -374,7 +490,7 @@ const JuryEvaluation = () => {
               <div className="flex items-center text-sm text-gray-600">
                 <User size={16} className="mr-1" />
                 {currentProject && (
-                  <span>{currentProject.team} ({currentProject.members} members)</span>
+                  <span>{typeof currentProject.team === 'object' ? currentProject.team.name : currentProject.team}</span>
                 )}
               </div>
             </div>
@@ -451,15 +567,15 @@ const JuryEvaluation = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-2xl font-bold">{currentProject ? calculateTotalScore().current : 0}</div>
+                  <div className="text-2xl font-bold">{calculateTotalScore().current}</div>
                   <div className="text-sm text-gray-600">Total Score</div>
                 </div>
                 <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-2xl font-bold">{currentProject ? calculateTotalScore().max : 0}</div>
+                  <div className="text-2xl font-bold">{calculateTotalScore().max}</div>
                   <div className="text-sm text-gray-600">Maximum Possible</div>
                 </div>
                 <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-2xl font-bold">{currentProject ? calculateTotalScore().percentage : 0}%</div>
+                  <div className="text-2xl font-bold">{calculateTotalScore().percentage}%</div>
                   <div className="text-sm text-gray-600">Percentage</div>
                 </div>
               </div>
@@ -467,7 +583,7 @@ const JuryEvaluation = () => {
               <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-600"
-                  style={{ width: `${currentProject ? calculateTotalScore().percentage : 0}%` }}
+                  style={{ width: `${calculateTotalScore().percentage}%` }}
                 ></div>
               </div>
               <div className="mt-2 text-sm text-center">
@@ -489,7 +605,7 @@ const JuryEvaluation = () => {
               <button
                 onClick={submitEvaluation}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                disabled={Object.keys(scores).length === 0}
+                disabled={loading || calculateTotalScore().current === 0}
               >
                 <Check size={16} className="inline mr-1" />
                 Submit Evaluation

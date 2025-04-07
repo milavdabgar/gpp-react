@@ -1,85 +1,157 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, FileText, User, MapPin, Award, Clock } from 'lucide-react';
+import { getProjectsByEvent, getDepartmentWinners } from '../../../services/projectApi';
 
 interface ProjectListProps {
   onViewProject: (projectId: string) => void;
+  event?: any;
 }
 
-const ProjectList: React.FC<ProjectListProps> = ({ onViewProject }) => {
+interface Project {
+  _id: string;
+  id?: string;
+  title: string;
+  category: string;
+  department: any;
+  teamId: any;
+  members?: number;
+  locationId?: any;
+  location?: string;
+  status: string;
+  abstract: string;
+  deptEvaluation?: {
+    completed: boolean;
+    score?: number;
+  };
+  centralEvaluation?: {
+    completed: boolean;
+    score?: number;
+  };
+}
+
+const ProjectList: React.FC<ProjectListProps> = ({ onViewProject, event }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [winners, setWinners] = useState<any[]>([]);
+  const [showWinners, setShowWinners] = useState<boolean>(false);
 
-  // Sample projects data - In production, this would come from an API
-  const projects = [
-    {
-      id: 'NPNI-2025-0042',
-      title: 'Smart Waste Management System',
-      category: 'IoT & Smart Systems',
-      department: 'Computer Engineering',
-      team: 'Team Innovate',
-      members: 3,
-      location: 'Stall A-12',
-      status: 'registered',
-      abstract: 'A smart waste management system that uses IoT sensors to monitor waste levels in bins and optimize collection routes for municipal workers.'
-    },
-    {
-      id: 'NPNI-2025-0056',
-      title: 'Solar Powered Water Purifier',
-      category: 'Sustainable Technology',
-      department: 'Electrical Engineering',
-      team: 'EcoSolutions',
-      members: 4,
-      location: 'Stall B-08',
-      status: 'registered',
-      abstract: 'A portable water purification system powered entirely by solar energy, designed for rural areas with limited electricity access.'
-    },
-    {
-      id: 'NPNI-2025-0073',
-      title: 'Structural Health Monitoring Device',
-      category: 'Hardware Project',
-      department: 'Civil Engineering',
-      team: 'BuildTech',
-      members: 2,
-      location: 'Stall C-15',
-      status: 'registered',
-      abstract: 'A low-cost device that monitors the structural health of buildings and bridges, providing early warnings for potential failures.'
-    }
-  ];
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!event?._id) return;
+      
+      try {
+        setLoading(true);
+        const data = await getProjectsByEvent(event._id);
+        
+        if (data && Array.isArray(data)) {
+          setProjects(data);
+          
+          // Extract unique departments and categories
+          const depts = new Set<string>();
+          const cats = new Set<string>();
+          
+          data.forEach((project: Project) => {
+            if (project.department?.name) {
+              depts.add(project.department.name);
+            }
+            if (project.category) {
+              cats.add(project.category);
+            }
+          });
+          
+          setDepartments(Array.from(depts));
+          setCategories(Array.from(cats));
+        }
+        
+        // If results are published, fetch winners
+        if (event.publishResults) {
+          try {
+            const winnersData = await getDepartmentWinners(event._id);
+            if (winnersData) {
+              setWinners(winnersData);
+            }
+          } catch (err) {
+            console.error("Failed to fetch winners:", err);
+          }
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError('Failed to load projects');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Department options
-  const departments = [
-    'Computer Engineering',
-    'Civil Engineering',
-    'Electrical Engineering',
-    'Mechanical Engineering',
-    'Electronics & Communication'
-  ];
-
-  // Project categories
-  const categories = [
-    'Software Development',
-    'Hardware Project',
-    'IoT & Smart Systems',
-    'Sustainable Technology',
-    'Industry Problem Solution',
-    'Research & Innovation'
-  ];
+    fetchProjects();
+  }, [event]);
 
   // Filter projects based on search term and filters
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (project.teamId?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (project._id || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesDepartment = filterDepartment === 'all' || project.department === filterDepartment;
-    const matchesCategory = filterCategory === 'all' || project.category === filterCategory;
+    const matchesDepartment = 
+      filterDepartment === 'all' || 
+      project.department?.name === filterDepartment;
+    
+    const matchesCategory = 
+      filterCategory === 'all' || 
+      project.category === filterCategory;
 
     return matchesSearch && matchesDepartment && matchesCategory;
   });
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Winners Banner (if results are published) */}
+      {event?.publishResults && winners.length > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-yellow-500 to-yellow-300 rounded-lg p-4 shadow-md">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold text-yellow-900">🏆 Project Fair Winners Announced!</h2>
+            <button 
+              onClick={() => setShowWinners(!showWinners)} 
+              className="text-sm px-3 py-1 bg-white text-yellow-700 rounded-md hover:bg-yellow-50"
+            >
+              {showWinners ? 'Hide Winners' : 'View Winners'}
+            </button>
+          </div>
+          
+          {showWinners && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {winners.map((winner, index) => (
+                <div key={index} className="bg-white p-3 rounded-lg shadow">
+                  <div className="text-sm text-yellow-700 font-medium">{winner.department?.name || 'Department'}</div>
+                  <h3 className="font-bold truncate">{winner.title}</h3>
+                  <div className="text-sm text-gray-600">{winner.teamId?.name || 'Team'}</div>
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="flex items-center">
+                      <Award size={16} className="text-yellow-500 mr-1" />
+                      <span className="text-sm font-medium">Rank #{winner.rank}</span>
+                    </div>
+                    <button 
+                      onClick={() => onViewProject(winner._id)}
+                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                      View Project
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Search and Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
         <div className="flex flex-col md:flex-row gap-4">
@@ -129,50 +201,26 @@ const ProjectList: React.FC<ProjectListProps> = ({ onViewProject }) => {
 
       {/* Projects List */}
       <div className="grid gap-6">
-        {filteredProjects.map(project => (
-          <div key={project.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">{project.title}</h3>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    <span className="flex items-center">
-                      <FileText size={16} className="mr-1" />
-                      {project.category}
-                    </span>
-                    <span className="flex items-center">
-                      <User size={16} className="mr-1" />
-                      {project.team} ({project.members} members)
-                    </span>
-                    <span className="flex items-center">
-                      <MapPin size={16} className="mr-1" />
-                      {project.location}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-sm text-gray-500">{project.id}</span>
-              </div>
-
-              <p className="text-gray-600 mb-4 line-clamp-2">
-                {project.abstract}
-              </p>
-
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-600">
-                  {project.department}
-                </div>
-                <button
-                  onClick={() => onViewProject(project.id)}
-                  className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  View Details
-                </button>
-              </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading projects...</p>
             </div>
           </div>
-        ))}
-
-        {filteredProjects.length === 0 && (
+        ) : error ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center text-red-600">
+              <p>{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : filteredProjects.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-gray-400 mb-2">
               <Filter size={48} className="mx-auto" />
@@ -182,8 +230,78 @@ const ProjectList: React.FC<ProjectListProps> = ({ onViewProject }) => {
               Try adjusting your search or filters to find what you're looking for.
             </p>
           </div>
+        ) : (
+          filteredProjects.map((project) => (
+            <div key={project._id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-semibold mb-2">{project.title}</h3>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                      <span className="flex items-center">
+                        <FileText size={16} className="mr-1" />
+                        {project.category}
+                      </span>
+                      <span className="flex items-center">
+                        <User size={16} className="mr-1" />
+                        {project.teamId?.name || 'No team'} 
+                        {project.teamId?.members && `(${project.teamId.members.length} members)`}
+                      </span>
+                      <span className="flex items-center">
+                        <MapPin size={16} className="mr-1" />
+                        {project.locationId?.locationId || 'No location assigned'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-500">{project._id}</span>
+                </div>
+
+                <p className="text-gray-600 mb-4 line-clamp-2">
+                  {project.abstract}
+                </p>
+
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    {project.department?.name || 'Department not assigned'}
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    {/* Evaluation Badges */}
+                    <div className="hidden sm:flex flex-col sm:flex-row gap-2">
+                      {project.deptEvaluation?.completed && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <Award size={12} className="mr-1" />
+                          Dept: {project.deptEvaluation.score}%
+                        </span>
+                      )}
+                      {project.centralEvaluation?.completed && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <Award size={12} className="mr-1" />
+                          Central: {project.centralEvaluation.score}%
+                        </span>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={() => onViewProject(project._id)}
+                      className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
+      
+      {/* Show count of displayed projects */}
+      {!loading && !error && filteredProjects.length > 0 && (
+        <div className="mt-6 text-center text-sm text-gray-500">
+          Showing {filteredProjects.length} of {projects.length} projects
+        </div>
+      )}
     </div>
   );
 };

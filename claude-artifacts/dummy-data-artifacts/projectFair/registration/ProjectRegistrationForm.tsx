@@ -1,10 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { ChevronLeft, Upload, Plus, Trash2, Info, Check, AlertCircle } from 'lucide-react';
+
+interface TeamMember {
+  id: number;
+  name: string;
+  enrollment: string;
+  role: string;
+}
+
+interface FormData {
+  projectTitle: string;
+  projectCategory: string;
+  department: string;
+  abstract: string;
+  requirements: {
+    power: boolean;
+    internet: boolean;
+    specialSpace: boolean;
+    otherRequirements: string;
+  };
+  guide: {
+    name: string;
+    department: string;
+    contactNumber: string;
+  };
+}
 
 const ProjectRegistrationForm = () => {
   const [step, setStep] = useState(1);
-  const [teamMembers, setTeamMembers] = useState([{ id: 1, name: '', enrollment: '', role: '' }]);
-  const [formData, setFormData] = useState({
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([{ id: 1, name: '', enrollment: '', role: '' }]);
+  const [formData, setFormData] = useState<FormData>({
     projectTitle: '',
     projectCategory: '',
     department: '',
@@ -23,28 +48,32 @@ const ProjectRegistrationForm = () => {
   });
   
   // Handle basic form field changes
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const target = e.target;
+    const name = target.name;
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox' ? target.checked : target.value;
     
     if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData({
-        ...formData,
-        [parent]: {
-          ...formData[parent],
-          [child]: type === 'checkbox' ? checked : value
-        }
-      });
+      const [parent, child] = name.split('.') as [keyof FormData, string];
+      if (parent === 'requirements' || parent === 'guide') {
+        setFormData({
+          ...formData,
+          [parent]: {
+            ...formData[parent],
+            [child]: value
+          }
+        });
+      }
     } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
+      setFormData(prev => ({
+        ...prev,
+        [name as keyof FormData]: value
+      }));
     }
   };
   
   // Handle team member changes
-  const handleTeamMemberChange = (id, field, value) => {
+  const handleTeamMemberChange = (id: number, field: keyof TeamMember, value: string) => {
     setTeamMembers(
       teamMembers.map(member => 
         member.id === id ? { ...member, [field]: value } : member
@@ -63,7 +92,7 @@ const ProjectRegistrationForm = () => {
   };
   
   // Remove team member
-  const removeTeamMember = (id) => {
+  const removeTeamMember = (id: number) => {
     if (teamMembers.length > 1) {
       setTeamMembers(teamMembers.filter(member => member.id !== id));
     }
@@ -93,7 +122,7 @@ const ProjectRegistrationForm = () => {
   ];
   
   // Submit form handler
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     
     // Form validation would go here
@@ -202,7 +231,7 @@ const ProjectRegistrationForm = () => {
                 name="abstract"
                 value={formData.abstract}
                 onChange={handleChange}
-                rows="4"
+                rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Provide a brief description of your project, its objectives, and expected outcomes (100-300 words)"
                 required
@@ -406,7 +435,7 @@ const ProjectRegistrationForm = () => {
                   name="requirements.otherRequirements"
                   value={formData.requirements.otherRequirements}
                   onChange={handleChange}
-                  rows="2"
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Any other specific requirements or considerations for your project setup"
                 ></textarea>

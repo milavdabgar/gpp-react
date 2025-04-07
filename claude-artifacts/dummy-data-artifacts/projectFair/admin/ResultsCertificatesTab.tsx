@@ -488,7 +488,7 @@ const ResultsCertificatesTab = () => {
                   Email Template
                 </label>
                 <textarea
-                  rows="5"
+                  rows={5}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                   defaultValue="Dear {participant_name},
 

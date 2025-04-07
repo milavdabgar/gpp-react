@@ -1,10 +1,34 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Star, Clock, Clipboard, Flag, Award, Info, User, FileText, CheckCircle, Filter, BarChart, Check } from 'lucide-react';
+import { Clock, User, Check, Filter, CheckCircle, BarChart } from 'lucide-react';
+
+interface Project {
+  id: string;
+  title: string;
+  category: string;
+  department: string;
+  team: string;
+  members: number;
+  location: string;
+  status: 'pending' | 'evaluated';
+  score?: number;
+  abstract: string;
+}
+
+interface EvaluationCriterion {
+  id: string;
+  name: string;
+  description: string;
+  maxScore: number;
+}
+
+interface Scores {
+  [key: string]: number;
+}
 
 const JuryEvaluation = () => {
   const [activeTab, setActiveTab] = useState('assigned');
-  const [evaluationType, setEvaluationType] = useState('department'); // 'department' or 'central'
-  const [currentProject, setCurrentProject] = useState(null);
+  const [evaluationType, setEvaluationType] = useState<'department' | 'central'>('department');
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'evaluate'
   
   // Sample projects data
@@ -17,7 +41,7 @@ const JuryEvaluation = () => {
       team: 'Team Innovate',
       members: 3,
       location: 'Stall A-12',
-      status: 'pending',
+      status: 'pending' as const,
       abstract: 'A smart waste management system that uses IoT sensors to monitor waste levels in bins and optimize collection routes for municipal workers.'
     },
     {
@@ -28,7 +52,7 @@ const JuryEvaluation = () => {
       team: 'EcoSolutions',
       members: 4,
       location: 'Stall B-08',
-      status: 'pending',
+      status: 'pending' as const,
       abstract: 'A portable water purification system powered entirely by solar energy, designed for rural areas with limited electricity access.'
     },
     {
@@ -39,14 +63,14 @@ const JuryEvaluation = () => {
       team: 'BuildTech',
       members: 2,
       location: 'Stall C-15',
-      status: 'evaluated',
+      status: 'evaluated' as const,
       score: 82,
       abstract: 'A low-cost device that monitors the structural health of buildings and bridges, providing early warnings for potential failures.'
     }
   ];
   
   // Evaluation criteria based on jury type
-  const evaluationCriteria = {
+  const evaluationCriteria: Record<'department' | 'central', EvaluationCriterion[]> = {
     department: [
       { id: 'innovation', name: 'Innovation & Originality', description: 'Uniqueness of the idea and approach', maxScore: 20 },
       { id: 'implementation', name: 'Implementation Quality', description: 'Quality of execution and working prototype', maxScore: 25 },
@@ -65,24 +89,24 @@ const JuryEvaluation = () => {
   };
   
   // Initial scores state
-  const [scores, setScores] = useState({});
+  const [scores, setScores] = useState<Scores>({});
   const [comments, setComments] = useState('');
   
   // Handle scoring change
-  const handleScoreChange = (criteriaId, value) => {
-    setScores({
-      ...scores,
+  const handleScoreChange = (criteriaId: string, value: string) => {
+    setScores(prev => ({
+      ...prev,
       [criteriaId]: parseInt(value)
-    });
+    }));
   };
   
   // Start evaluating a project
-  const startEvaluation = (project) => {
+  const startEvaluation = (project: Project) => {
     setCurrentProject(project);
     setViewMode('evaluate');
     // Initialize scores
-    const initialScores = {};
-    evaluationCriteria[evaluationType].forEach(criteria => {
+    const initialScores: Scores = {};
+    evaluationCriteria[evaluationType].forEach((criteria: EvaluationCriterion) => {
       initialScores[criteria.id] = 0;
     });
     setScores(initialScores);
@@ -91,9 +115,10 @@ const JuryEvaluation = () => {
   
   // Submit evaluation
   const submitEvaluation = () => {
+    if (!currentProject) return;
     // Calculate total score
-    const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
-    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum, criteria) => sum + criteria.maxScore, 0);
+    const totalScore = Object.values(scores).reduce((sum: number, score: number) => sum + score, 0);
+    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum: number, criteria: EvaluationCriterion) => sum + criteria.maxScore, 0);
     
     // Here you would send the data to your backend
     console.log('Submitting evaluation:', {
@@ -120,9 +145,10 @@ const JuryEvaluation = () => {
   };
   
   // Calculate total score for current evaluation
-  const calculateTotalScore = () => {
-    const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
-    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum, criteria) => sum + criteria.maxScore, 0);
+  const calculateTotalScore = (): { current: number; max: number; percentage: number } => {
+    if (!currentProject) return { current: 0, max: 0, percentage: 0 };
+    const totalScore = Object.values(scores).reduce((sum: number, score: number) => sum + score, 0);
+    const maxPossibleScore = evaluationCriteria[evaluationType].reduce((sum: number, criteria: EvaluationCriterion) => sum + criteria.maxScore, 0);
     return {
       current: totalScore,
       max: maxPossibleScore,
@@ -132,6 +158,7 @@ const JuryEvaluation = () => {
 
   // Toggle between department and central jury views
   const toggleEvaluationType = () => {
+    if (!currentProject) return;
     setEvaluationType(evaluationType === 'department' ? 'central' : 'department');
     if (viewMode === 'evaluate') {
       setViewMode('list');
@@ -315,33 +342,40 @@ const JuryEvaluation = () => {
           <div className="p-6">
             {/* Project details */}
             <div className="mb-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-xs text-gray-500">{currentProject.id}</span>
-                  <h3 className="text-xl font-semibold mb-2">{currentProject.title}</h3>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {currentProject.department}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                      {currentProject.category}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {currentProject.location}
-                    </span>
+              {currentProject && (
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-xs text-gray-500">{currentProject.id}</span>
+                    <h3 className="text-xl font-semibold mb-2">{currentProject.title}</h3>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {currentProject.department}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {currentProject.category}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {currentProject.location}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs flex items-center">
+                    <Clock size={14} className="mr-1" />
+                    {evaluationType === 'department' ? '10:00 AM - 12:00 PM' : '2:00 PM - 4:00 PM'}
                   </div>
                 </div>
-                <div className="bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-xs flex items-center">
-                  <Clock size={14} className="mr-1" />
-                  {evaluationType === 'department' ? '10:00 AM - 12:00 PM' : '2:00 PM - 4:00 PM'}
-                </div>
-              </div>
+              )}
+
               
-              <p className="text-gray-700 mb-4">{currentProject.abstract}</p>
+              {currentProject && (
+                <p className="text-gray-700 mb-4">{currentProject.abstract}</p>
+              )}
               
               <div className="flex items-center text-sm text-gray-600">
                 <User size={16} className="mr-1" />
-                <span>{currentProject.team} ({currentProject.members} members)</span>
+                {currentProject && (
+                  <span>{currentProject.team} ({currentProject.members} members)</span>
+                )}
               </div>
             </div>
             
@@ -406,7 +440,7 @@ const JuryEvaluation = () => {
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="3"
+                rows={3}
                 placeholder="Provide any additional comments or feedback for the team"
               ></textarea>
             </div>
@@ -417,15 +451,15 @@ const JuryEvaluation = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-2xl font-bold">{calculateTotalScore().current}</div>
+                  <div className="text-2xl font-bold">{currentProject ? calculateTotalScore().current : 0}</div>
                   <div className="text-sm text-gray-600">Total Score</div>
                 </div>
                 <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-2xl font-bold">{calculateTotalScore().max}</div>
+                  <div className="text-2xl font-bold">{currentProject ? calculateTotalScore().max : 0}</div>
                   <div className="text-sm text-gray-600">Maximum Possible</div>
                 </div>
                 <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-2xl font-bold">{calculateTotalScore().percentage}%</div>
+                  <div className="text-2xl font-bold">{currentProject ? calculateTotalScore().percentage : 0}%</div>
                   <div className="text-sm text-gray-600">Percentage</div>
                 </div>
               </div>
@@ -433,11 +467,11 @@ const JuryEvaluation = () => {
               <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-600"
-                  style={{ width: `${calculateTotalScore().percentage}%` }}
+                  style={{ width: `${currentProject ? calculateTotalScore().percentage : 0}%` }}
                 ></div>
               </div>
               <div className="mt-2 text-sm text-center">
-                {calculateTotalScore().current} out of {calculateTotalScore().max} points
+                {currentProject ? `${calculateTotalScore().current} out of ${calculateTotalScore().max} points` : 'No project selected'}
               </div>
             </div>
             
