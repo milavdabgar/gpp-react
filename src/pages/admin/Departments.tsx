@@ -464,13 +464,13 @@ const EditDepartmentModal: React.FC<EditDepartmentModalProps> = ({ department, o
             />
           </div>
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">HOD</label>
+            <label className="block text-sm font-medium mb-1">HOD (Optional)</label>
             <select
-              value={formData.hodId}
+              value={formData.hodId || ''}
               onChange={(e) => setFormData({ ...formData, hodId: e.target.value })}
               className="w-full p-2 border rounded"
             >
-              <option value="">Select HOD</option>
+              <option value="">No HOD Selected</option>
               {users.map(user => (
                 <option key={user._id} value={user._id}>
                   {user.name}
@@ -596,13 +596,13 @@ const AddDepartmentModal: React.FC<AddDepartmentModalProps> = ({ onClose, onSave
             />
           </div>
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">HOD</label>
+            <label className="block text-sm font-medium mb-1">HOD (Optional)</label>
             <select
-              value={formData.hodId}
+              value={formData.hodId || ''}
               onChange={(e) => setFormData({ ...formData, hodId: e.target.value })}
               className="w-full p-2 border rounded"
             >
-              <option value="">Select HOD</option>
+              <option value="">No HOD Selected</option>
               {users.map(user => (
                 <option key={user._id} value={user._id}>
                   {user.name}
