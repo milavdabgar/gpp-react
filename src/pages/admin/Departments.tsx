@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { Edit, Trash2, Search } from 'lucide-react';
+import { Edit, Trash2, Search, Download, Upload } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Department } from '../../types/department';
@@ -150,6 +150,65 @@ const Departments: React.FC = () => {
     }
   };
 
+  // Import CSV
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:9000/api/departments/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        showToast('Departments imported successfully', 'success');
+        fetchDepartments();
+      } else {
+        const error = await response.text();
+        showToast(`Import failed: ${error}`, 'error');
+      }
+    } catch (error) {
+      showToast(`Error importing departments: ${error}`, 'error');
+    }
+  };
+
+  // Export CSV
+  const handleExport = async () => {
+    try {
+      const response = await fetch('http://localhost:9000/api/departments/export', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        showToast(`Export failed: ${error}`, 'error');
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'departments.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      showToast('Departments exported successfully', 'success');
+    } catch (error) {
+      showToast(`Error exporting departments: ${error}`, 'error');
+    }
+  };
+
   // Initial fetch
   useEffect(() => {
     fetchDepartments();
@@ -186,12 +245,34 @@ const Departments: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Departments</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Add Department
-        </button>
+        <div className="flex gap-2">
+          {/* Import CSV */}
+          <label className="cursor-pointer bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Import CSV
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImport}
+              className="hidden"
+            />
+          </label>
+          {/* Export CSV */}
+          <button
+            onClick={handleExport}
+            className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          {/* Add Department */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Add Department
+          </button>
+        </div>
       </div>
 
       {/* Search and filters */}

@@ -1,0 +1,6 @@
+Name,Code,Description,EstablishedDate,IsActive
+Computer Science,CS,Department of Computer Science,2020-01-01,true
+Electronics and Communication,EC,Department of Electronics and Communication Engineering,2020-01-01,true
+Information Technology,IT,Department of Information Technology,2020-01-01,true
+Mechanical Engineering,ME,Department of Mechanical Engineering,2020-01-01,true
+Civil Engineering,CE,Department of Civil Engineering,2020-01-01,true
