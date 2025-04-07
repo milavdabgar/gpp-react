@@ -1,32 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Project } from '../../../types/project.types';
+import { getAllProjects } from '../../../services/projectApi';
+import { exportProjectsToCsv } from '../../../services/projectApi';
 import { 
   Users, 
   Award, 
   Map, 
-  BarChart, 
-  ChevronDown, 
-  Settings, 
   Download, 
-  Filter, 
-  Mail, 
-  Clipboard, 
-  Clock, 
   CheckCircle, 
   AlertTriangle, 
-  FileText, 
-  Printer, 
   Activity, 
   User,
   Edit, 
   Trash2, 
   Plus, 
   Search, 
-  Calendar, 
-  Info 
+  Calendar
 } from 'lucide-react';
 
-const ProjectFairAdmin: React.FC = () => {
+export default function ProjectFairAdmin() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllProjects();
+        setProjects(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load projects');
+        console.error('Error fetching projects:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
   
   // Sample statistics data
   const stats = {
@@ -45,43 +60,6 @@ const ProjectFairAdmin: React.FC = () => {
     { department: 'Civil Engineering', count: 8, evaluatedCount: 3 },
     { department: 'Mechanical Engineering', count: 6, evaluatedCount: 2 },
     { department: 'Electronics & Communication', count: 3, evaluatedCount: 1 }
-  ];
-  
-  // Sample project list
-  const projects = [
-    {
-      id: 'NPNI-2025-0042',
-      title: 'Smart Waste Management System',
-      department: 'Computer Engineering',
-      team: 'Team Innovate',
-      members: 3,
-      location: 'Stall A-12',
-      registrationDate: '2025-04-01',
-      departmentEvaluation: { status: 'completed', score: 85 },
-      centralEvaluation: { status: 'pending', score: null }
-    },
-    {
-      id: 'NPNI-2025-0056',
-      title: 'Solar Powered Water Purifier',
-      department: 'Electrical Engineering',
-      team: 'EcoSolutions',
-      members: 4,
-      location: 'Stall B-08',
-      registrationDate: '2025-04-02',
-      departmentEvaluation: { status: 'completed', score: 92 },
-      centralEvaluation: { status: 'pending', score: null }
-    },
-    {
-      id: 'NPNI-2025-0073',
-      title: 'Structural Health Monitoring Device',
-      department: 'Civil Engineering',
-      team: 'BuildTech',
-      members: 2,
-      location: 'Stall C-15',
-      registrationDate: '2025-04-03',
-      departmentEvaluation: { status: 'completed', score: 78 },
-      centralEvaluation: { status: 'pending', score: null }
-    }
   ];
   
   // Sample jury members
@@ -287,7 +265,7 @@ const ProjectFairAdmin: React.FC = () => {
         </div>
         
         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
-          {projects.map((project, index) => (
+          {Array.isArray(projects) && projects.map((project, index) => (
             <div key={index} className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-xs text-gray-500 block">{project.id}</span>
@@ -365,7 +343,10 @@ const ProjectFairAdmin: React.FC = () => {
           <option>Completed Central Evaluation</option>
         </select>
         
-        <button className="ml-auto text-sm text-blue-600 hover:text-blue-800 flex items-center">
+        <button 
+          className="ml-auto text-sm text-blue-600 hover:text-blue-800 flex items-center"
+          onClick={() => exportProjectsToCsv()}
+        >
           <Download size={14} className="mr-1" />
           Export List
         </button>
@@ -401,7 +382,25 @@ const ProjectFairAdmin: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {projects.map((project, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    Loading projects...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              ) : projects.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    No projects found
+                  </td>
+                </tr>
+              ) : Array.isArray(projects) && projects.map((project: Project, index: number) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {project.id}
@@ -653,5 +652,3 @@ const ProjectFairAdmin: React.FC = () => {
     </div>
   );
 };
-
-export default ProjectFairAdmin;

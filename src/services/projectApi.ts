@@ -1,7 +1,7 @@
-import axios from 'axios';
+import axios from '../utils/axios';
 import { Project, Team, Event, Location, ProjectStatistics, EvaluationData, CategoryCounts, Winner, EmailData } from '../types/project.types';
 
-const API_URL = '/api/projects';
+const API_URL = '/projects';
 
 // Project Services
 interface Filters {
@@ -128,7 +128,22 @@ export const exportProjectsToCsv = async (filters = {}) => {
     if (value) params.append(key, value as string);
   });
   
-  window.location.href = `${API_URL}/export?${params.toString()}`;
+  const response = await axios.get(`${API_URL}/export?${params.toString()}`, {
+    responseType: 'blob'
+  });
+  
+  // Create a blob from the response data
+  const blob = new Blob([response.data as BlobPart], { type: 'text/csv' });
+  
+  // Create a link element and trigger download
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'projects.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 };
 
 export const importProjectsFromCsv = async (file: File): Promise<Project[]> => {
