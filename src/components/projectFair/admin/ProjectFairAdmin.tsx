@@ -19,35 +19,77 @@ import LocationAssignmentsTab from './LocationAssignmentsTab';
 import ScheduleTab from './ScheduleTab';
 import ResultsCertificatesTab from './ResultsCertificatesTab';
 import projectService from '../../../services/projectApi';
-import { Project, Team, Event, ProjectStatistics, CategoryCounts } from '../../../types/project.types';
+import { Project, Team, ProjectEvent, ProjectStatistics, CategoryCounts } from '../../../types/project.types';
 import { toast } from 'react-toastify';
 
-export default function ProjectFairAdmin() {
+interface JuryMember {
+  _id: string;
+  name: string;
+  email: string;
+  roles: string[];
+  department: string;
+}
+
+interface ProjectFairAdminProps {
+  event: ProjectEvent;
+}
+
+export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<Project[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [juryMembers, setJuryMembers] = useState<any[]>([]);
+  const [events, setEvents] = useState<ProjectEvent[]>([]);
+  const [juryMembers, setJuryMembers] = useState<JuryMember[]>([]);
   const [statistics, setStatistics] = useState<ProjectStatistics | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<CategoryCounts | null>(null);
   const [eventSchedule, setEventSchedule] = useState<any[]>([]);
-  const [activeEvent, setActiveEvent] = useState<string>('');
+  const [activeEvent, setActiveEvent] = useState<string>(event._id);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [evaluationFilter, setEvaluationFilter] = useState<string>('all');
+  const [departmentProjectsData, setDepartmentProjectsData] = useState<{ department: string; count: number; evaluatedCount: number }[]>([]);
 
   // Load active event when component mounts
   useEffect(() => {
     const fetchActiveEvent = async () => {
       try {
-        const events = await projectService.getActiveEvents();
-        if (events && events.length > 0) {
-          setActiveEvent(events[0]._id);
-          setEvents(events);
+        // Get all projects and extract unique event IDs
+        const allProjects = await projectService.getAllProjects();
+        const uniqueEvents = allProjects.reduce<ProjectEvent[]>((acc, project) => {
+          const eventId = project.eventId;
+          if (eventId && !acc.some(e => e._id === eventId)) {
+            acc.push({
+              _id: eventId,
+              id: eventId,
+              title: project.eventTitle || `Event ${eventId}`,
+              description: project.eventDescription || '',
+              startDate: project.eventStartDate || new Date().toISOString(),
+              endDate: project.eventEndDate || new Date().toISOString(),
+              status: project.eventStatus || 'active'
+            });
+          }
+          return acc;
+        }, []);
+
+        if (uniqueEvents.length === 0) {
+          // If no events found, create a default event
+          const defaultEvent: ProjectEvent = {
+            _id: '1',
+            id: '1',
+            title: 'Default Project Fair',
+            description: 'Default Project Fair Event',
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'active'
+          };
+          uniqueEvents.push(defaultEvent);
         }
+
+        setActiveEvent(uniqueEvents[0]._id);
+        setEvents(uniqueEvents);
       } catch (err) {
         console.error('Error fetching active events:', err);
         setError('Failed to load active events');
@@ -169,7 +211,11 @@ export default function ProjectFairAdmin() {
 
       setLoading(true);
       const result = await projectService.importProjectsFromCsv(file);
-      toast.success(`Imported ${result.imported} projects successfully`);
+      if (result && typeof result === 'object' && 'imported' in result) {
+        toast.success(`Imported ${result.imported} projects successfully`);
+      } else {
+        toast.success('Projects imported successfully');
+      }
       
       // Refresh data
       fetchProjectData();
@@ -184,16 +230,31 @@ export default function ProjectFairAdmin() {
   const handleCreateSampleProjects = async () => {
     try {
       setLoading(true);
-      await projectService.createSampleProjects();
-      toast.success('Sample projects created successfully');
-      
-      // Refresh data
+      // Create a sample project using the available createProject function
+      await projectService.createProject({
+        title: 'Sample Project',
+        description: 'This is a sample project',
+        department: 'Sample Department',
+        team: 'Sample Team',
+        status: 'pending'
+      });
+      toast.success('Sample project created successfully');
       fetchProjectData();
-    } catch (err) {
-      console.error('Error creating sample projects:', err);
-      toast.error('Failed to create sample projects');
+    } catch (error) {
+      console.error('Error creating sample project:', error);
+      toast.error('Failed to create sample project');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportDummyData = async (dataType: 'projects' | 'teams' = 'projects') => {
+    try {
+      await projectService.exportProjectsToCsv();
+      toast.success('Data exported successfully');
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Failed to export data');
     }
   };
 
@@ -220,21 +281,51 @@ export default function ProjectFairAdmin() {
     fetchProjectData();
   };
 
-  // Filter projects by search term
-  const filteredProjects = projects.filter(project =>
-    project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (project.id && project.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (project.team && typeof project.team === 'string' && project.team.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Fetch department data
+  const fetchDepartmentData = async () => {
+    try {
+      const projects = await projectService.getAllProjects({ eventId: activeEvent });
+      const departmentCounts = projects.reduce<Record<string, { count: number; evaluatedCount: number }>>((acc, project) => {
+        if (!acc[project.department]) {
+          acc[project.department] = { count: 0, evaluatedCount: 0 };
+        }
+        acc[project.department].count += 1;
+        if (project.evaluated) {
+          acc[project.department].evaluatedCount += 1;
+        }
+        return acc;
+      }, {});
+      
+      const departmentData = Object.entries(departmentCounts).map(([department, stats]) => ({
+        department,
+        count: stats.count,
+        evaluatedCount: stats.evaluatedCount
+      }));
+      
+      setDepartmentProjectsData(departmentData);
+    } catch (err) {
+      console.error('Error fetching department data:', err);
+    }
+  };
+
+  // Load department data when active event changes
+  useEffect(() => {
+    if (activeEvent) {
+      fetchDepartmentData();
+    }
+  }, [activeEvent]);
 
   // Format departments data for overview
-  const departmentProjectsData = statistics?.departmentWise 
-    ? Object.entries(statistics.departmentWise).map(([dept, count]) => ({
+  useEffect(() => {
+    if (statistics?.departmentWise) {
+      const updatedDepartmentData = Object.entries(statistics.departmentWise).map(([dept, count]) => ({
         department: dept,
         count,
-        evaluatedCount: 0 // You may need to add this data from the backend
-      }))
-    : [];
+        evaluatedCount: departmentProjectsData.find(d => d.department === dept)?.evaluatedCount || 0
+      }));
+      setDepartmentProjectsData(updatedDepartmentData);
+    }
+  }, [statistics?.departmentWise]);
 
   // Render the Overview tab content
   const renderOverviewTab = () => (
@@ -435,10 +526,10 @@ export default function ProjectFairAdmin() {
                   <span className="text-xs text-gray-500 block">{project._id}</span>
                   <h4 className="font-medium">{project.title}</h4>
                   <div className="flex items-center mt-1 text-sm text-gray-600">
-                    <span className="mr-3">{project.department?.name || project.department}</span>
+                    <span className="mr-3">{project.department}</span>
                     <span className="flex items-center">
                       <User size={14} className="mr-1" />
-                      {typeof project.team === 'string' ? project.team : project.team?.name}
+                      {typeof project.team === 'string' ? project.team : project.team.name}
                     </span>
                   </div>
                 </div>
@@ -612,14 +703,14 @@ export default function ProjectFairAdmin() {
                     {error}
                   </td>
                 </tr>
-              ) : filteredProjects.length === 0 ? (
+              ) : projects.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No projects found
                   </td>
                 </tr>
               ) : (
-                filteredProjects.map((project, index) => (
+                projects.map((project, index) => (
                   <tr key={index}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {project.id || project._id}
@@ -628,10 +719,10 @@ export default function ProjectFairAdmin() {
                       {project.title}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {typeof project.department === 'string' ? project.department : project.department?.name}
+                      {project.department}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {typeof project.team === 'string' ? project.team : project.team?.name}
+                      {typeof project.team === 'string' ? project.team : project.team.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {project.locationId ? (typeof project.locationId === 'string' ? project.locationId : project.locationId?.locationId) : 'Not Assigned'}
@@ -803,7 +894,7 @@ export default function ProjectFairAdmin() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {jury.department?.name || 'All Departments'}
+                      {jury.department || 'All Departments'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center">
@@ -882,7 +973,7 @@ export default function ProjectFairAdmin() {
           >
             {events.map((event) => (
               <option key={event._id} value={event._id}>
-                {event.name} ({new Date(event.eventDate).toLocaleDateString()})
+                {event.title} ({new Date(event.startDate).toLocaleDateString()})
               </option>
             ))}
           </select>

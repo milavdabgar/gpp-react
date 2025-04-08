@@ -1,15 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { getActiveEvents } from '../services/projectApi';
-import ProjectFairAdmin from '../components/projectFair/admin/ProjectFairAdmin';
-import ProjectRegistrationForm from '../components/projectFair/registration/ProjectRegistrationForm';
-import JuryEvaluation from '../components/projectFair/jury/JuryEvaluation';
-import ProjectFairStudent from '../components/projectFair/student/ProjectFairStudent';
-import { useAuth } from '../context/AuthContext';
+import { getActiveEvents } from '../../../services/projectApi';
+import ProjectFairAdmin from '../admin/ProjectFairAdmin';
+import ProjectRegistrationForm from '../registration/ProjectRegistrationForm';
+import JuryEvaluation from '../jury/JuryEvaluation';
+import ProjectFairStudent from './ProjectFairStudent';
+import { useAuth } from '../../../context/AuthContext';
+import { ProjectEvent } from '../../../types/project.types';
+
+interface ProjectFairAdminProps {
+  event: ProjectEvent;
+}
+
+interface ProjectRegistrationFormProps {
+  event: ProjectEvent;
+}
+
+interface JuryEvaluationProps {
+  event: ProjectEvent;
+}
+
+interface ProjectFairStudentProps {
+  event: ProjectEvent;
+}
 
 const ProjectFair: React.FC = () => {
   const { user } = useAuth();
-  const [activeEvent, setActiveEvent] = useState<any>(null);
+  const [activeEvent, setActiveEvent] = useState<ProjectEvent | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,10 +108,10 @@ const ProjectFair: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={renderComponent()} />
-      <Route path="/register" element={<ProjectRegistrationForm event={activeEvent} />} />
-      <Route path="/admin/*" element={user?.roles?.includes('admin') ? <ProjectFairAdmin event={activeEvent} /> : <Navigate to="/" replace />} />
-      <Route path="/jury/*" element={user?.roles?.includes('jury') ? <JuryEvaluation event={activeEvent} /> : <Navigate to="/" replace />} />
-      <Route path="/student/*" element={user?.roles?.includes('student') ? <ProjectFairStudent event={activeEvent} /> : <Navigate to="/" replace />} />
+      <Route path="/register" element={activeEvent ? <ProjectRegistrationForm event={activeEvent} /> : <Navigate to="/" replace />} />
+      <Route path="/admin/*" element={user?.roles?.includes('admin') && activeEvent ? <ProjectFairAdmin event={activeEvent} /> : <Navigate to="/" replace />} />
+      <Route path="/jury/*" element={user?.roles?.includes('jury') && activeEvent ? <JuryEvaluation event={activeEvent} /> : <Navigate to="/" replace />} />
+      <Route path="/student/*" element={user?.roles?.includes('student') && activeEvent ? <ProjectFairStudent event={activeEvent} /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

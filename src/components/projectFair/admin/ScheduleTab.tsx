@@ -27,6 +27,11 @@ interface ScheduleItem {
 
 interface Event {
   _id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: string;
   name: string;
   eventDate: string;
   schedule: ScheduleItem[];
@@ -49,8 +54,14 @@ const ScheduleTab: React.FC = () => {
       try {
         const events = await projectService.getActiveEvents();
         if (events && events.length > 0) {
-          setActiveEvent(events[0]);
-          fetchEventSchedule(events[0]._id);
+          const event = {
+            ...events[0],
+            name: events[0].title || '',
+            eventDate: events[0].startDate || '',
+            schedule: events[0].schedule || []
+          } as Event;
+          setActiveEvent(event);
+          fetchEventSchedule(event._id);
         }
       } catch (err) {
         console.error('Error fetching active events:', err);

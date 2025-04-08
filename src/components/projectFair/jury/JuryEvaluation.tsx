@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, User, Check, Filter, CheckCircle, BarChart } from 'lucide-react';
 import projectService from '../../../services/projectApi';
-import { Project, EvaluationData } from '../../../types/project.types';
+import { Project, EvaluationData, ProjectEvent } from '../../../types/project.types';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -16,7 +16,16 @@ interface Scores {
   [key: string]: number;
 }
 
-const JuryEvaluation: React.FC = () => {
+interface JuryProjectsResponse {
+  evaluatedProjects: Project[];
+  pendingProjects: Project[];
+}
+
+interface JuryEvaluationProps {
+  event: ProjectEvent;
+}
+
+const JuryEvaluation: React.FC<JuryEvaluationProps> = ({ event }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('assigned');
   const [evaluationType, setEvaluationType] = useState<'department' | 'central'>('department');
@@ -57,26 +66,22 @@ const JuryEvaluation: React.FC = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const data = await projectService.getProjectsForJury(evaluationType);
+      const response = await projectService.getProjectsForJury(evaluationType);
+      const projects = Array.isArray(response) ? response : [];
       
-      if (data) {
-        // Split projects into evaluated and pending
-        const evaluated = data.evaluatedProjects || [];
-        const pending = data.pendingProjects || [];
-        
-        setEvaluatedProjects(evaluated);
-        setPendingProjects(pending);
-        setProjects([...evaluated, ...pending]);
-      } else {
-        setEvaluatedProjects([]);
-        setPendingProjects([]);
-        setProjects([]);
-      }
+      // Split projects into evaluated and pending
+      const evaluated = projects.filter(p => p.evaluated);
+      const pending = projects.filter(p => !p.evaluated);
       
-      setError(null);
+      setEvaluatedProjects(evaluated);
+      setPendingProjects(pending);
+      setProjects([...evaluated, ...pending]);
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Failed to load projects');
+      setEvaluatedProjects([]);
+      setPendingProjects([]);
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -307,7 +312,7 @@ const JuryEvaluation: React.FC = () => {
                             <div>
                               <span className="text-xs text-gray-500 block">Department</span>
                               <span className="text-sm font-medium">
-                                {typeof project.department === 'object' ? project.department.name : project.department}
+                                {typeof project.department === 'object' ? (project.department as any).name : project.department}
                               </span>
                             </div>
                             <div>
@@ -318,7 +323,7 @@ const JuryEvaluation: React.FC = () => {
                               <span className="text-xs text-gray-500 block">Location</span>
                               <span className="text-sm font-medium">
                                 {project.locationId ? 
-                                  (typeof project.locationId === 'object' ? project.locationId.locationId : project.locationId) 
+                                  (typeof project.locationId === 'object' ? (project.locationId as any).locationId : project.locationId) 
                                   : 'Not Assigned'}
                               </span>
                             </div>
@@ -335,7 +340,7 @@ const JuryEvaluation: React.FC = () => {
                                 <User size={14} />
                               </div>
                               <span className="text-sm text-gray-600">
-                                {typeof project.team === 'object' ? project.team.name : project.team}
+                                {typeof project.team === 'object' ? (project.team as any).name : project.team}
                               </span>
                             </div>
                           </div>
@@ -377,7 +382,7 @@ const JuryEvaluation: React.FC = () => {
                             <div>
                               <span className="text-xs text-gray-500 block">Department</span>
                               <span className="text-sm font-medium">
-                                {typeof project.department === 'object' ? project.department.name : project.department}
+                                {typeof project.department === 'object' ? (project.department as any).name : project.department}
                               </span>
                             </div>
                             <div>
@@ -388,7 +393,7 @@ const JuryEvaluation: React.FC = () => {
                               <span className="text-xs text-gray-500 block">Location</span>
                               <span className="text-sm font-medium">
                                 {project.locationId ? 
-                                  (typeof project.locationId === 'object' ? project.locationId.locationId : project.locationId) 
+                                  (typeof project.locationId === 'object' ? (project.locationId as any).locationId : project.locationId) 
                                   : 'Not Assigned'}
                               </span>
                             </div>
@@ -409,7 +414,7 @@ const JuryEvaluation: React.FC = () => {
                                 <User size={14} />
                               </div>
                               <span className="text-sm text-gray-600">
-                                {typeof project.team === 'object' ? project.team.name : project.team}
+                                {typeof project.team === 'object' ? (project.team as any).name : project.team}
                               </span>
                             </div>
                           </div>
@@ -464,14 +469,14 @@ const JuryEvaluation: React.FC = () => {
                     <h3 className="text-xl font-semibold mb-2">{currentProject.title}</h3>
                     <div className="flex flex-wrap gap-2 mb-3">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {typeof currentProject.department === 'object' ? currentProject.department.name : currentProject.department}
+                        {typeof currentProject.department === 'object' ? (currentProject.department as any).name : currentProject.department}
                       </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                         {currentProject.category}
                       </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         {currentProject.locationId ? 
-                          (typeof currentProject.locationId === 'object' ? currentProject.locationId.locationId : currentProject.locationId) 
+                          (typeof currentProject.locationId === 'object' ? (currentProject.locationId as any).locationId : currentProject.locationId) 
                           : 'No Location'}
                       </span>
                     </div>
@@ -490,7 +495,7 @@ const JuryEvaluation: React.FC = () => {
               <div className="flex items-center text-sm text-gray-600">
                 <User size={16} className="mr-1" />
                 {currentProject && (
-                  <span>{typeof currentProject.team === 'object' ? currentProject.team.name : currentProject.team}</span>
+                  <span>{typeof currentProject.team === 'object' ? (currentProject.team as any).name : currentProject.team}</span>
                 )}
               </div>
             </div>

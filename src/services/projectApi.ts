@@ -1,5 +1,5 @@
 import axios from '../utils/axios';
-import { Project, Team, Event, Location, ProjectStatistics, EvaluationData, CategoryCounts, Winner, EmailData } from '../types/project.types';
+import { Project, Team, ProjectEvent, Location, ProjectStatistics, EvaluationData, CategoryCounts, Winner, EmailData } from '../types/project.types';
 
 const API_URL = '/projects';
 
@@ -377,28 +377,28 @@ export const importTeamsFromCsv = async (file: File): Promise<Team[]> => {
 // ...
 
 // Event Services
-export const getAllEvents = async (): Promise<Event[]> => {
-  const response = await axios.get<{ data: Event[] }>(`${API_URL}/events`);
+export const getAllEvents = async (): Promise<ProjectEvent[]> => {
+  const response = await axios.get<{ data: ProjectEvent[] }>(`${API_URL}/events`);
   return response.data.data;
 };
 
-export const getActiveEvents = async (): Promise<Event[]> => {
-  const response = await axios.get<{ data: Event[] }>(`${API_URL}/events/active`);
+export const getActiveEvents = async (): Promise<ProjectEvent[]> => {
+  const response = await axios.get<{ data: ProjectEvent[] }>(`${API_URL}/events/active`);
   return response.data.data;
 };
 
-export const getEvent = async (id: string): Promise<Event> => {
-  const response = await axios.get<{ data: Event }>(`${API_URL}/events/${id}`);
+export const getEvent = async (id: string): Promise<ProjectEvent> => {
+  const response = await axios.get<{ data: ProjectEvent }>(`${API_URL}/events/${id}`);
   return response.data.data;
 };
 
-export const createEvent = async (eventData: Partial<Event>): Promise<Event> => {
-  const response = await axios.post<{ data: Event }>(`${API_URL}/events`, eventData);
+export const createEvent = async (eventData: Partial<ProjectEvent>): Promise<ProjectEvent> => {
+  const response = await axios.post<{ data: ProjectEvent }>(`${API_URL}/events`, eventData);
   return response.data.data;
 };
 
-export const updateEvent = async (id: string, eventData: Partial<Event>): Promise<Event> => {
-  const response = await axios.patch<{ data: Event }>(`${API_URL}/events/${id}`, eventData);
+export const updateEvent = async (id: string, eventData: Partial<ProjectEvent>): Promise<ProjectEvent> => {
+  const response = await axios.patch<{ data: ProjectEvent }>(`${API_URL}/events/${id}`, eventData);
   return response.data.data;
 };
 
@@ -409,8 +409,8 @@ export const deleteEvent = async (id: string): Promise<void> => {
 // Continuation of project-service.js...
 
 // Event Services (continued)
-export const publishResults = async (id: string, publishStatus = true): Promise<Event> => {
-  const response = await axios.patch<{ data: Event }>(`${API_URL}/events/${id}/publish`, { publish: publishStatus });
+export const publishResults = async (id: string, publishStatus = true): Promise<ProjectEvent> => {
+  const response = await axios.patch<{ data: ProjectEvent }>(`${API_URL}/events/${id}/publish`, { publish: publishStatus });
   return response.data.data;
 };
 
@@ -429,11 +429,11 @@ export const exportEventsToCsv = async (): Promise<string> => {
   return response.data.data;
 };
 
-export const importEventsFromCsv = async (file: File): Promise<Event[]> => {
+export const importEventsFromCsv = async (file: File): Promise<ProjectEvent[]> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await axios.post<{ data: Event[] }>(`${API_URL}/events/import`, formData, {
+  const response = await axios.post<{ data: ProjectEvent[] }>(`${API_URL}/events/import`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

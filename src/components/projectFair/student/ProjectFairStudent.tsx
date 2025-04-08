@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import ProjectList from './ProjectList';
 import ProjectView from './ProjectView';
-import { ChevronLeft, Home, User, Award, Calendar, Info } from 'lucide-react';
+import { ChevronLeft, Home, User, Award, Calendar, Info, Clock, Check, Filter } from 'lucide-react';
 import { getMyProjects } from '../../../services/projectApi';
 import { useAuth } from '../../../context/AuthContext';
+import { Project, ProjectEvent } from '../../../types/project.types';
+import { toast } from 'react-toastify';
 
 interface ProjectFairStudentProps {
-  event?: any;
+  event: ProjectEvent;
 }
 
 const ProjectFairStudent: React.FC<ProjectFairStudentProps> = ({ event }) => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'details' | 'my-projects'>('list');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [myProjects, setMyProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {

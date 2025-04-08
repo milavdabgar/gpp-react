@@ -20,7 +20,7 @@ export interface Team {
   [key: string]: any;
 }
 
-export interface Event {
+export interface ProjectEvent {
   _id: string;
   id: string;
   title: string;

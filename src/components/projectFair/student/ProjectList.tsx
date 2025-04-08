@@ -1,24 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, FileText, User, MapPin, Award, Clock } from 'lucide-react';
-import { getProjectsByEvent, getDepartmentWinners } from '../../../services/projectApi';
+import { getProjectsByEvent, getEventWinners } from '../../../services/projectApi';
+import { Project as ProjectType, Winner, ProjectEvent } from '../../../types/project.types';
 
 interface ProjectListProps {
   onViewProject: (projectId: string) => void;
-  event?: any;
+  event?: ProjectEvent;
 }
 
-interface Project {
-  _id: string;
-  id?: string;
-  title: string;
-  category: string;
-  department: any;
-  teamId: any;
-  members?: number;
-  locationId?: any;
-  location?: string;
-  status: string;
-  abstract: string;
+// Extended Project interface with additional properties
+interface ExtendedProject extends Omit<ProjectType, 'department'> {
   deptEvaluation?: {
     completed: boolean;
     score?: number;
@@ -27,18 +18,29 @@ interface Project {
     completed: boolean;
     score?: number;
   };
+  locationId?: {
+    locationId: string;
+  };
+  teamId?: {
+    name: string;
+    members?: any[];
+  };
+  department?: {
+    _id: string;
+    name: string;
+  };
 }
 
 const ProjectList: React.FC<ProjectListProps> = ({ onViewProject, event }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ExtendedProject[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [winners, setWinners] = useState<any[]>([]);
+  const [winners, setWinners] = useState<ExtendedProject[]>([]);
   const [showWinners, setShowWinners] = useState<boolean>(false);
 
   useEffect(() => {
@@ -50,13 +52,24 @@ const ProjectList: React.FC<ProjectListProps> = ({ onViewProject, event }) => {
         const data = await getProjectsByEvent(event._id);
         
         if (data && Array.isArray(data)) {
-          setProjects(data);
+          // Convert the data to ExtendedProject type
+          const extendedProjects = data.map(project => ({
+            ...project,
+            category: project.category || '',
+            teamId: project.teamId || null,
+            abstract: project.abstract || '',
+            department: typeof project.department === 'string' 
+              ? { _id: project.department, name: '' } 
+              : project.department || { _id: '', name: '' }
+          })) as ExtendedProject[];
+          
+          setProjects(extendedProjects);
           
           // Extract unique departments and categories
           const depts = new Set<string>();
           const cats = new Set<string>();
           
-          data.forEach((project: Project) => {
+          extendedProjects.forEach(project => {
             if (project.department?.name) {
               depts.add(project.department.name);
             }
@@ -65,16 +78,27 @@ const ProjectList: React.FC<ProjectListProps> = ({ onViewProject, event }) => {
             }
           });
           
-          setDepartments(Array.from(depts));
-          setCategories(Array.from(cats));
+          setDepartments(Array.from(depts).sort());
+          setCategories(Array.from(cats).sort());
         }
         
         // If results are published, fetch winners
         if (event.publishResults) {
           try {
-            const winnersData = await getDepartmentWinners(event._id);
+            const winnersData = await getEventWinners(event._id);
             if (winnersData) {
-              setWinners(winnersData);
+              // Convert winners data to ExtendedProject type
+              const extendedWinners = winnersData.map(winner => ({
+                ...winner,
+                category: winner.category || '',
+                teamId: winner.teamId || null,
+                abstract: winner.abstract || '',
+                department: typeof winner.department === 'string' 
+                  ? { _id: winner.department, name: '' } 
+                  : winner.department || { _id: '', name: '' }
+              })) as ExtendedProject[];
+              
+              setWinners(extendedWinners);
             }
           } catch (err) {
             console.error("Failed to fetch winners:", err);

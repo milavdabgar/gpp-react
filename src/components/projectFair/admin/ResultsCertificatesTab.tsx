@@ -15,21 +15,29 @@ import {
 } from 'lucide-react';
 import projectService from '../../../services/projectApi';
 import { toast } from 'react-toastify';
+import { Winner as ProjectWinner } from '../../../types/project.types';
 
-interface Winner {
+interface Winner extends ProjectWinner {
   rank: number;
-  projectId: string;
-  title: string;
-  team: any;
-  department: any;
   score: number;
 }
 
 interface Event {
   _id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: string;
   name: string;
   eventDate: string;
   publishResults: boolean;
+  schedule: any[];
+}
+
+interface WinnersData {
+  departmentWinners: Winner[];
+  instituteWinners: Winner[];
 }
 
 interface CertificateStats {
@@ -66,9 +74,16 @@ const ResultsCertificatesTab: React.FC = () => {
       try {
         const events = await projectService.getActiveEvents();
         if (events && events.length > 0) {
-          setActiveEvent(events[0]);
-          setPublishedResults(events[0].publishResults);
-          fetchEventData(events[0]._id);
+          const event = {
+            ...events[0],
+            name: events[0].title || '',
+            eventDate: events[0].startDate || '',
+            publishResults: events[0].publishResults || false,
+            schedule: events[0].schedule || []
+          } as Event;
+          setActiveEvent(event);
+          setPublishedResults(event.publishResults);
+          fetchEventData(event._id);
         }
       } catch (err) {
         console.error('Error fetching active events:', err);
@@ -95,7 +110,13 @@ const ResultsCertificatesTab: React.FC = () => {
 
   const fetchWinners = async (eventId: string) => {
     try {
-      const data = await projectService.getEventWinners(eventId);
+      const response = await projectService.getEventWinners(eventId);
+      const winners = Array.isArray(response) ? response : [];
+      const data = {
+        departmentWinners: winners.map(w => ({ ...w, rank: 0, score: 0 })) as Winner[],
+        instituteWinners: winners.map(w => ({ ...w, rank: 0, score: 0 })) as Winner[]
+      };
+      
       if (data) {
         if (data.departmentWinners) {
           setDepartmentWinners(data.departmentWinners);
@@ -121,8 +142,8 @@ const ResultsCertificatesTab: React.FC = () => {
       // In a real application, you would fetch these stats from the backend
       // For now, let's generate some example stats
       const participationCerts = await projectService.generateProjectCertificates(eventId, 'participation');
-      const deptWinnerCerts = await projectService.generateProjectCertificates(eventId, 'department-winners');
-      const instituteWinnerCerts = await projectService.generateProjectCertificates(eventId, 'institute-winners');
+      const deptWinnerCerts = await projectService.generateProjectCertificates(eventId, 'winner');
+      const instituteWinnerCerts = await projectService.generateProjectCertificates(eventId, 'winner');
       
       // Set certificate stats
       setCertificateStats({
@@ -468,10 +489,10 @@ const ResultsCertificatesTab: React.FC = () => {
                       
                       <h5 className="font-medium text-center mb-1">{winner.title}</h5>
                       <div className="text-sm text-gray-600 text-center mb-1">
-                        {typeof winner.team === 'string' ? winner.team : winner.team?.name}
+                        {typeof winner.team === 'string' ? winner.team : (winner.team as any)?.name || winner.team}
                       </div>
                       <div className="text-sm text-gray-500 text-center mb-4">
-                        {typeof winner.department === 'string' ? winner.department : winner.department?.name}
+                        {typeof winner.department === 'string' ? winner.department : (winner.department as any)?.name || winner.department}
                       </div>
                       
                       <div className="flex justify-center space-x-2">

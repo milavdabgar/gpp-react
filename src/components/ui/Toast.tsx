@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 interface ToastProps {
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   onClose: () => void;
   duration?: number;
 }
@@ -20,7 +20,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }
   const bgColor = {
     success: 'bg-green-500',
     error: 'bg-red-500',
-    info: 'bg-blue-500'
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500'
   }[type];
 
   return (

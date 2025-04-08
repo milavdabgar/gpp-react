@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus, MapPin, Edit, RefreshCw, Check, X } from 'lucide-react';
 import projectService from '../../../services/projectApi';
 import { toast } from 'react-toastify';
+import { Location as LocationType } from '../../../types/project.types';
 
-interface Location {
+interface LocationData {
   _id: string;
   locationId: string;
   section: string;
@@ -23,13 +24,13 @@ interface Project {
 
 const LocationAssignmentsTab: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState('A');
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useState<LocationData[]>([]);
   const [unassignedProjects, setUnassignedProjects] = useState<Project[]>([]);
   const [activeEvent, setActiveEvent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [availableSections, setAvailableSections] = useState<string[]>([]);
 
   // Load active event when component mounts
@@ -62,7 +63,7 @@ const LocationAssignmentsTab: React.FC = () => {
       const fetchSections = async () => {
         try {
           const allLocations = await projectService.getAllLocations({ eventId: activeEvent });
-          const sections = Array.from(new Set(allLocations.map((loc: Location) => loc.section)));
+          const sections = Array.from(new Set(allLocations.map((loc: any) => loc.section)));
           setAvailableSections(sections.sort());
         } catch (err) {
           console.error('Error fetching sections:', err);
@@ -81,8 +82,19 @@ const LocationAssignmentsTab: React.FC = () => {
         section: selectedSection
       });
       
-      // Sort by position
-      const sortedLocations = data.sort((a: Location, b: Location) => a.position - b.position);
+      // Convert to LocationData type and sort by position
+      const locationData = data.map((loc: any) => ({
+        _id: loc._id,
+        locationId: loc.locationId || '',
+        section: loc.section || '',
+        position: loc.position || 0,
+        department: loc.department || null,
+        eventId: loc.eventId || '',
+        projectId: loc.projectId || null,
+        isAssigned: !!loc.projectId
+      }));
+      
+      const sortedLocations = locationData.sort((a, b) => a.position - b.position);
       setLocations(sortedLocations);
     } catch (err) {
       console.error('Error fetching locations:', err);
@@ -107,7 +119,7 @@ const LocationAssignmentsTab: React.FC = () => {
     }
   };
 
-  const handleAssignProject = async (location: Location, projectId: string) => {
+  const handleAssignProject = async (location: LocationData, projectId: string) => {
     try {
       await projectService.assignProjectToLocation(location._id, projectId);
       toast.success('Project assigned successfully');
@@ -121,7 +133,7 @@ const LocationAssignmentsTab: React.FC = () => {
     }
   };
 
-  const handleUnassignProject = async (location: Location) => {
+  const handleUnassignProject = async (location: LocationData) => {
     try {
       await projectService.unassignProjectFromLocation(location._id);
       toast.success('Project unassigned successfully');
@@ -212,14 +224,14 @@ const LocationAssignmentsTab: React.FC = () => {
       
       const count = parseInt(numStalls);
       
-      // Create batch data
-      const batchData = {
+      // Create batch data as an array of location objects
+      const batchData = Array.from({ length: count }, (_, i) => ({
         section: selectedSection,
-        startPosition: highestPosition + 1,
-        endPosition: highestPosition + count,
+        position: highestPosition + i + 1,
         department: departmentId,
-        eventId: activeEvent
-      };
+        eventId: activeEvent,
+        locationId: `${selectedSection}-${String(highestPosition + i + 1).padStart(2, '0')}`
+      }));
       
       await projectService.createLocationBatch(batchData);
       toast.success(`Created ${count} locations successfully`);

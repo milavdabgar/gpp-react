@@ -2,7 +2,14 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { ChevronLeft, Upload, Plus, Trash2, Info, Check, AlertCircle } from 'lucide-react';
 import projectService from '../../../services/projectApi';
 import { useAuth } from '../../../context/AuthContext';
-import { toast } from 'react-toastify';
+import { useToast } from '../../../context/ToastContext';
+import { ProjectEvent, Team, Project } from '../../../types/project.types';
+
+interface User {
+  _id: string;
+  name: string;
+  department?: string | { _id: string; name: string };
+}
 
 interface TeamMember {
   id: number;
@@ -45,20 +52,13 @@ interface Faculty {
   email: string;
 }
 
-interface Event {
-  _id: string;
-  name: string;
-  eventDate: string;
-  registrationStartDate: string;
-  registrationEndDate: string;
-}
-
 interface ProjectRegistrationFormProps {
-  event?: any;
+  event?: ProjectEvent;
 }
 
 const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event }) => {
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: User | null };
+  const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
     { id: 1, name: user?.name || '', enrollmentNo: '', role: 'Team Leader', isLeader: true }
@@ -85,7 +85,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
   
   const [departments, setDepartments] = useState<Department[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
-  const [activeEvents, setActiveEvents] = useState<Event[]>(event ? [event] : []);
+  const [activeEvents, setActiveEvents] = useState<ProjectEvent[]>(event ? [event] : []);
   const [teamId, setTeamId] = useState<string>('');
   const [projectId, setProjectId] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -123,7 +123,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
       // Only fetch active events if no event was provided via props
       if (!event) {
         const eventsData = await projectService.getActiveEvents();
-        setActiveEvents(eventsData || []);
+        setActiveEvents(eventsData as ProjectEvent[] || []);
         
         if (eventsData && eventsData.length > 0) {
           setFormData(prev => ({
@@ -139,7 +139,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
         if (user.department) {
           setFormData(prev => ({
             ...prev,
-            department: typeof user.department === 'string' ? user.department : user.department._id
+            department: typeof user.department === 'string' ? user.department : user.department?._id || ''
           }));
         }
         
@@ -148,7 +148,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
       }
     } catch (err) {
       console.error('Error fetching initial data:', err);
-      toast.error('Failed to load initial data');
+      showToast('Failed to load initial data', 'error');
     } finally {
       setLoading(false);
     }
@@ -166,7 +166,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
         
         // Set team members from existing team
         if (firstTeam.members && firstTeam.members.length > 0) {
-          const mappedMembers = firstTeam.members.map((member, index) => ({
+          const mappedMembers = firstTeam.members.map((member: any, index) => ({
             id: index + 1,
             name: member.name || (member.userId && typeof member.userId === 'object' ? member.userId.name : ''),
             enrollmentNo: member.enrollmentNo || '',
@@ -181,9 +181,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
         const teamProjects = await projectService.getProjectsByTeam(firstTeam._id);
         if (teamProjects && teamProjects.length > 0) {
           // User already has a project, redirect to project view
-          // In a real app, you might want to redirect to a project details page
-          toast.info('You already have a project registered. Redirecting to your project.');
-          // Implementation of redirection would depend on your routing setup
+          showToast('You already have a project registered. Redirecting to your project.', 'info');
         }
       }
     } catch (err) {
@@ -266,7 +264,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
         { id: Date.now(), name: '', enrollmentNo: '', role: 'Member', isLeader: false }
       ]);
     } else {
-      toast.warning('Maximum team size is 4 members.');
+      showToast('Maximum team size is 4 members.', 'warning');
     }
   };
   
@@ -284,7 +282,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
       
       setTeamMembers(updatedMembers);
     } else {
-      toast.warning('Team must have at least one member.');
+      showToast('Team must have at least one member.', 'warning');
     }
   };
   
@@ -293,12 +291,12 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('File size exceeds 5MB limit');
+        showToast('File size exceeds 5MB limit', 'error');
         return;
       }
       
       setFileSelected(file);
-      toast.success('File selected successfully');
+      showToast('File selected successfully', 'success');
     }
   };
   
@@ -311,19 +309,19 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
     switch (currentStep) {
       case 1:
         if (!formData.projectTitle) {
-          toast.error('Project title is required');
+          showToast('Project title is required', 'error');
           return false;
         }
         if (!formData.projectCategory) {
-          toast.error('Project category is required');
+          showToast('Project category is required', 'error');
           return false;
         }
         if (!formData.department) {
-          toast.error('Department is required');
+          showToast('Department is required', 'error');
           return false;
         }
         if (!formData.abstract || formData.abstract.length < 50) {
-          toast.error('Please provide a detailed abstract (minimum 50 characters)');
+          showToast('Please provide a detailed abstract (minimum 50 characters)', 'error');
           return false;
         }
         return true;
@@ -332,18 +330,18 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
         // Validate team members
         for (const member of teamMembers) {
           if (!member.name) {
-            toast.error('All team members must have a name');
+            showToast('All team members must have a name', 'error');
             return false;
           }
           if (!member.enrollmentNo) {
-            toast.error('All team members must have an enrollment number');
+            showToast('All team members must have an enrollment number', 'error');
             return false;
           }
         }
         
         // Ensure at least one leader
         if (!teamMembers.some(member => member.isLeader)) {
-          toast.error('Team must have a designated leader');
+          showToast('Team must have a designated leader', 'error');
           return false;
         }
         
@@ -351,11 +349,11 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
       
       case 3:
         if (!formData.guide.name && !formData.guide.userId) {
-          toast.error('Please select or enter a guide');
+          showToast('Please select or enter a guide', 'error');
           return false;
         }
         if (!formData.guide.contactNumber) {
-          toast.error('Guide contact number is required');
+          showToast('Guide contact number is required', 'error');
           return false;
         }
         return true;
@@ -378,16 +376,11 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
       let currentTeamId = teamId;
       if (!currentTeamId) {
         // Create a team first
-        const teamData = {
+        const teamData: Partial<Team> = {
           name: `Team ${teamMembers[0].name.split(' ')[0]}`, // Use first name of first member
           department: formData.department,
-          members: teamMembers.map(member => ({
-            userId: user?._id, // For simplicity, assign all members to current user
-            name: member.name,
-            enrollmentNo: member.enrollmentNo,
-            role: member.role,
-            isLeader: member.isLeader
-          })),
+          members: teamMembers.map(member => member.name),
+          leader: teamMembers.find(member => member.isLeader)?.name || teamMembers[0].name,
           eventId: formData.eventId
         };
         
@@ -420,10 +413,10 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
       
       // Move to success step
       setStep(4);
-      toast.success('Project registered successfully!');
+      showToast('Project registered successfully!', 'success');
     } catch (err) {
       console.error('Error registering project:', err);
-      toast.error('Failed to register project');
+      showToast('Failed to register project', 'error');
     } finally {
       setLoading(false);
     }
