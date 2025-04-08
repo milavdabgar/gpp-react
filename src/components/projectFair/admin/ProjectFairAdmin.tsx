@@ -60,36 +60,37 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   useEffect(() => {
     const fetchActiveEvent = async () => {
       try {
-        // Get all projects and extract unique event IDs
-        const allProjects = await projectService.getAllProjects();
+        // If there's no event ID, don't try to fetch projects
+        if (!event._id) {
+          setEvents([]);
+          setActiveEvent('');
+          return;
+        }
+
+        // Get projects for the current event
+        const projects = await projectService.getProjectsByEvent(event._id);
         
-        // Check if allProjects is an array
-        if (!Array.isArray(allProjects)) {
-          console.error('Expected allProjects to be an array, got:', typeof allProjects);
+        // Check if projects is an array
+        if (!Array.isArray(projects)) {
+          console.error('Expected projects to be an array, got:', typeof projects);
           setEvents([]);
           return;
         }
         
-        const uniqueEvents = allProjects.reduce<ProjectEvent[]>((acc, project) => {
-          const eventId = project.eventId;
-          if (eventId && !acc.some(e => e._id === eventId)) {
-            acc.push({
-              _id: eventId,
-              id: eventId,
-              title: project.eventTitle || `Event ${eventId}`,
-              description: project.eventDescription || '',
-              startDate: project.eventStartDate || new Date().toISOString(),
-              endDate: project.eventEndDate || new Date().toISOString(),
-              status: project.eventStatus || 'active'
-            });
-          }
-          return acc;
-        }, []);
-
-        setEvents(uniqueEvents);
-        if (uniqueEvents.length > 0) {
-          setActiveEvent(uniqueEvents[0]._id);
-        }
+        // Create a single event object from the current event
+        const currentEvent: ProjectEvent = {
+          _id: event._id,
+          id: event._id,
+          title: event.title || `Event ${event._id}`,
+          description: event.description || '',
+          startDate: event.startDate || new Date().toISOString(),
+          endDate: event.endDate || new Date().toISOString(),
+          status: event.status || 'upcoming'
+        };
+        
+        // Set the events array with just the current event
+        setEvents([currentEvent]);
+        setActiveEvent(event._id);
       } catch (err) {
         console.error('Error fetching active events:', err);
         setError('Failed to load active events');
@@ -97,7 +98,7 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
     };
 
     fetchActiveEvent();
-  }, []);
+  }, [event._id]);
 
   // Load projects when active event changes
   useEffect(() => {

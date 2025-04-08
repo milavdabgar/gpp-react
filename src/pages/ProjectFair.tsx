@@ -69,11 +69,36 @@ const ProjectFair: React.FC = () => {
     }
 
     if (!activeEvent) {
+      if (user?.roles?.includes('admin')) {
+        return (
+          <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center">
+                <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                  No Active Project Fair Event
+                </h2>
+                <p className="mt-4 text-lg text-gray-500">
+                  As an admin, you can create a new project fair event.
+                </p>
+                <div className="mt-8">
+                  <ProjectFairAdmin event={{ _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'draft' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
       return (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center text-gray-600">
-            <p>No active project fair event found.</p>
-            <p className="mt-2">Please check back later or contact the administrator.</p>
+        <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                No Active Project Fair Event
+              </h2>
+              <p className="mt-4 text-lg text-gray-500">
+                There is currently no active project fair event. Please check back later or contact the administrator.
+              </p>
+            </div>
           </div>
         </div>
       );
