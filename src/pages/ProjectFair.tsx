@@ -18,9 +18,14 @@ const ProjectFair: React.FC = () => {
     const fetchActiveEvent = async () => {
       try {
         setLoading(true);
+        console.log('Fetching active events...');
         const events = await getActiveEvents();
+        console.log('Active events fetched:', events);
         if (events && events.length > 0) {
+          console.log('Setting active event to:', events[0]);
           setActiveEvent(events[0]);
+        } else {
+          console.log('No active events found');
         }
         setError(null);
       } catch (err) {
@@ -36,6 +41,8 @@ const ProjectFair: React.FC = () => {
 
   // Render appropriate component based on user role
   const renderComponent = () => {
+    console.log('Rendering component. activeEvent:', activeEvent, 'user roles:', user?.roles);
+    
     if (loading) {
       return (
         <div className="flex justify-center items-center h-64">
@@ -65,6 +72,7 @@ const ProjectFair: React.FC = () => {
 
     // Allow admins to access admin section even without active event
     if (user?.roles?.includes('admin')) {
+      console.log('User is admin, rendering ProjectFairAdmin with event:', activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' });
       return <ProjectFairAdmin event={activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' }} />;
     }
 

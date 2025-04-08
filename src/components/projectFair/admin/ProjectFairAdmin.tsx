@@ -60,15 +60,19 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   useEffect(() => {
     const fetchActiveEvent = async () => {
       try {
+        console.log('Fetching active event, event._id:', event._id);
         // If there's no event ID, don't try to fetch projects
         if (!event._id) {
+          console.log('No event ID provided, setting empty events array');
           setEvents([]);
           setActiveEvent('');
           return;
         }
 
         // Get projects for the current event
+        console.log('Fetching projects for event:', event._id);
         const projects = await projectService.getProjectsByEvent(event._id);
+        console.log('Projects fetched:', projects);
         
         // Check if projects is an array
         if (!Array.isArray(projects)) {
@@ -88,8 +92,10 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
           status: event.status || 'upcoming'
         };
         
+        console.log('Setting events with current event:', currentEvent);
         // Set the events array with just the current event
         setEvents([currentEvent]);
+        console.log('Setting active event to:', event._id);
         setActiveEvent(event._id);
       } catch (err) {
         console.error('Error fetching active events:', err);
@@ -328,26 +334,48 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
     }
   }, [statistics?.departmentWise]);
 
-  const handleEventCreated = (newEvent: ProjectEvent) => {
-    setEvents(prev => [...prev, newEvent]);
-    setActiveEvent(newEvent._id);
-    setShowCreateEventForm(false);
-    showToast('Event created successfully!', 'success');
+  const handleEventCreated = async (newEvent: ProjectEvent) => {
+    try {
+      console.log('Event created:', newEvent);
+      // Fetch active events to get the latest data
+      const activeEvents = await projectService.getActiveEvents();
+      console.log('Active events fetched:', activeEvents);
+      
+      if (activeEvents && activeEvents.length > 0) {
+        console.log('Setting events from active events:', activeEvents);
+        setEvents(activeEvents);
+        console.log('Setting active event to:', activeEvents[0]._id);
+        setActiveEvent(activeEvents[0]._id);
+      } else {
+        console.log('No active events found, using newly created event');
+        setEvents([newEvent]);
+        console.log('Setting active event to:', newEvent._id);
+        setActiveEvent(newEvent._id);
+      }
+      setShowCreateEventForm(false);
+      showToast('Event created successfully!', 'success');
+    } catch (err) {
+      console.error('Error fetching active events:', err);
+      showToast('Failed to load active events', 'error');
+    }
   };
 
-  const renderNoEventMessage = () => (
-    <div className="text-center py-12">
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">No active project fair event found.</h3>
-      <p className="text-gray-600 mb-4">Please create a new event to get started.</p>
-      <button
-        onClick={() => setShowCreateEventForm(true)}
-        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Create New Event
-      </button>
-    </div>
-  );
+  const renderNoEventMessage = () => {
+    console.log('Rendering no event message. activeEvent:', activeEvent, 'events:', events);
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">No active project fair event found.</h3>
+        <p className="text-gray-600 mb-4">Please create a new event to get started.</p>
+        <button
+          onClick={() => setShowCreateEventForm(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Create New Event
+        </button>
+      </div>
+    );
+  };
 
   if (showCreateEventForm) {
     return (
