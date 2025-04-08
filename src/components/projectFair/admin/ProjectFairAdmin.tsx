@@ -18,9 +18,11 @@ import {
 import LocationAssignmentsTab from './LocationAssignmentsTab';
 import ScheduleTab from './ScheduleTab';
 import ResultsCertificatesTab from './ResultsCertificatesTab';
+import CreateEventForm from './CreateEventForm';
 import projectService from '../../../services/projectApi';
 import { Project, Team, ProjectEvent, ProjectStatistics, CategoryCounts } from '../../../types/project.types';
 import { toast } from 'react-toastify';
+import { useToast } from '../../../context/ToastContext';
 
 interface JuryMember {
   _id: string;
@@ -35,6 +37,7 @@ interface ProjectFairAdminProps {
 }
 
 export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<Project[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -43,7 +46,7 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   const [statistics, setStatistics] = useState<ProjectStatistics | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<CategoryCounts | null>(null);
   const [eventSchedule, setEventSchedule] = useState<any[]>([]);
-  const [activeEvent, setActiveEvent] = useState<string>(event._id);
+  const [activeEvent, setActiveEvent] = useState<string>(event._id || '');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -51,6 +54,7 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [evaluationFilter, setEvaluationFilter] = useState<string>('all');
   const [departmentProjectsData, setDepartmentProjectsData] = useState<{ department: string; count: number; evaluatedCount: number }[]>([]);
+  const [showCreateEventForm, setShowCreateEventForm] = useState(false);
 
   // Load active event when component mounts
   useEffect(() => {
@@ -58,6 +62,14 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
       try {
         // Get all projects and extract unique event IDs
         const allProjects = await projectService.getAllProjects();
+        
+        // Check if allProjects is an array
+        if (!Array.isArray(allProjects)) {
+          console.error('Expected allProjects to be an array, got:', typeof allProjects);
+          setEvents([]);
+          return;
+        }
+        
         const uniqueEvents = allProjects.reduce<ProjectEvent[]>((acc, project) => {
           const eventId = project.eventId;
           if (eventId && !acc.some(e => e._id === eventId)) {
@@ -74,22 +86,10 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
           return acc;
         }, []);
 
-        if (uniqueEvents.length === 0) {
-          // If no events found, create a default event
-          const defaultEvent: ProjectEvent = {
-            _id: '1',
-            id: '1',
-            title: 'Default Project Fair',
-            description: 'Default Project Fair Event',
-            startDate: new Date().toISOString(),
-            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'active'
-          };
-          uniqueEvents.push(defaultEvent);
-        }
-
-        setActiveEvent(uniqueEvents[0]._id);
         setEvents(uniqueEvents);
+        if (uniqueEvents.length > 0) {
+          setActiveEvent(uniqueEvents[0]._id);
+        }
       } catch (err) {
         console.error('Error fetching active events:', err);
         setError('Failed to load active events');
@@ -326,6 +326,42 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
       setDepartmentProjectsData(updatedDepartmentData);
     }
   }, [statistics?.departmentWise]);
+
+  const handleEventCreated = (newEvent: ProjectEvent) => {
+    setEvents(prev => [...prev, newEvent]);
+    setActiveEvent(newEvent._id);
+    setShowCreateEventForm(false);
+    showToast('Event created successfully!', 'success');
+  };
+
+  const renderNoEventMessage = () => (
+    <div className="text-center py-12">
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">No active project fair event found.</h3>
+      <p className="text-gray-600 mb-4">Please create a new event to get started.</p>
+      <button
+        onClick={() => setShowCreateEventForm(true)}
+        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Create New Event
+      </button>
+    </div>
+  );
+
+  if (showCreateEventForm) {
+    return (
+      <div className="max-w-2xl mx-auto mt-8">
+        <CreateEventForm
+          onEventCreated={handleEventCreated}
+          onCancel={() => setShowCreateEventForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (!activeEvent) {
+    return renderNoEventMessage();
+  }
 
   // Render the Overview tab content
   const renderOverviewTab = () => (

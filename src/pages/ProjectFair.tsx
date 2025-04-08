@@ -63,6 +63,11 @@ const ProjectFair: React.FC = () => {
       );
     }
 
+    // Allow admins to access admin section even without active event
+    if (user?.roles?.includes('admin')) {
+      return <ProjectFairAdmin event={activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' }} />;
+    }
+
     if (!activeEvent) {
       return (
         <div className="flex justify-center items-center h-64">
@@ -78,9 +83,7 @@ const ProjectFair: React.FC = () => {
       return <ProjectRegistrationForm event={activeEvent} />;
     }
     
-    if (user.roles.includes('admin')) {
-      return <ProjectFairAdmin event={activeEvent} />;
-    } else if (user.roles.includes('jury')) {
+    if (user.roles.includes('jury')) {
       return <JuryEvaluation event={activeEvent} />;
     } else if (user.roles.includes('student')) {
       return <ProjectFairStudent event={activeEvent} />;
@@ -93,7 +96,7 @@ const ProjectFair: React.FC = () => {
     <Routes>
       <Route path="/" element={renderComponent()} />
       <Route path="/register" element={activeEvent ? <ProjectRegistrationForm event={activeEvent} /> : <Navigate to="/" replace />} />
-      <Route path="/admin/*" element={user?.roles?.includes('admin') && activeEvent ? <ProjectFairAdmin event={activeEvent} /> : <Navigate to="/" replace />} />
+      <Route path="/admin/*" element={user?.roles?.includes('admin') ? <ProjectFairAdmin event={activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' }} /> : <Navigate to="/" replace />} />
       <Route path="/jury/*" element={user?.roles?.includes('jury') && activeEvent ? <JuryEvaluation event={activeEvent} /> : <Navigate to="/" replace />} />
       <Route path="/student/*" element={user?.roles?.includes('student') && activeEvent ? <ProjectFairStudent event={activeEvent} /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
