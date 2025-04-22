@@ -3,6 +3,12 @@ import { Upload, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axios from '../../config/axios';
 
+interface AnalyzeResponse {
+    success: boolean;
+    reportId: string;
+    result: any;
+}
+
 const FeedbackAnalysis: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
 
@@ -15,22 +21,16 @@ const FeedbackAnalysis: React.FC = () => {
 
         setIsUploading(true);
         try {
-            const response = await axios.post('/api/feedback/analyze', formData, {
-                responseType: 'blob',
+            const response = await axios.post<AnalyzeResponse>('/api/feedback/analyze', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
 
-            // Create a download link for the zip file
-            const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', 'feedback_reports.zip');
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            const { reportId } = response.data;
+            // Navigate to the report view
+            console.log('Analysis response:', response.data); // For debugging
+            window.location.href = `/admin/feedback-analysis/report/${reportId}`;
 
             toast.success('Feedback analysis completed successfully!');
         } catch (error) {

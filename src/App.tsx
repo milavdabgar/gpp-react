@@ -12,6 +12,7 @@ import Faculty from './pages/admin/Faculty';
 import Student from './pages/admin/Student';
 import Results from './pages/admin/Results';
 import FeedbackAnalysis from './pages/admin/FeedbackAnalysis';
+import FeedbackReportPage from './pages/FeedbackReportPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -49,6 +50,8 @@ function App() {
                     <Route index element={<AdminDashboard />} />
                     <Route path="users" element={<Users />} />
                     <Route path="roles" element={<Roles />} />
+                    <Route path="feedback-analysis" element={<FeedbackAnalysis />} />
+                    <Route path="feedback-analysis/report/:id" element={<FeedbackReportPage />} />
                     <Route path="departments" element={<Departments />} />
                     <Route path="faculties" element={<Faculty />} />
                     <Route path="students" element={<Student />} />
