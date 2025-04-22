@@ -10,16 +10,20 @@ import Roles from './pages/admin/Roles';
 import Departments from './pages/admin/Departments';
 import Faculty from './pages/admin/Faculty';
 import Student from './pages/admin/Student';
-import Results from './pages/admin/Results'; // Import the Results component
+import Results from './pages/admin/Results';
+import FeedbackAnalysis from './pages/admin/FeedbackAnalysis';
 import AdminDashboard from './pages/admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <ToastContainer position="top-right" />
         <Router>
           <Routes>
             {/* Public routes */}
@@ -48,7 +52,8 @@ function App() {
                     <Route path="departments" element={<Departments />} />
                     <Route path="faculties" element={<Faculty />} />
                     <Route path="students" element={<Student />} />
-                    <Route path="results" element={<Results />} /> {/* New route for Results */}
+                    <Route path="results" element={<Results />} />
+                    <Route path="feedback-analysis" element={<FeedbackAnalysis />} />
                     <Route path="reports" element={<div>Reports Coming Soon</div>} />
                     <Route path="settings" element={<div>Settings Coming Soon</div>} />
                   </Routes>

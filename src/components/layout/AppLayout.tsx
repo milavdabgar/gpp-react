@@ -42,7 +42,8 @@ const AppLayout: React.FC = () => {
       { name: 'Departments', icon: Layers, id: 'departments' },
       { name: 'Faculty', icon: Users, id: 'faculties' },
       { name: 'Students', icon: Users, id: 'students' },
-      { name: 'Results', icon: BarChart, id: 'results' }, // New item for Results
+      { name: 'Results', icon: BarChart, id: 'results' },
+      { name: 'Feedback Analysis', icon: BarChart, id: 'feedback-analysis' },
       { name: 'Project Fair Admin', icon: Award, id: 'project-fair', highlight: true },
       { name: 'Settings', icon: Settings, id: 'settings' },
     ],
