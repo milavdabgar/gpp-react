@@ -27,7 +27,25 @@ export interface ProjectEvent {
   description: string;
   startDate: string;
   endDate: string;
-  status: string;
+  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  name: string;
+  eventDate: string;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  isActive: boolean;
+  academicYear: string;
+  schedule: Array<{
+    time: string;
+    activity: string;
+    location: string;
+    coordinator: {
+      userId: string;
+      name: string;
+    };
+    notes: string;
+  }>;
+  departments: string[];
+  publishResults: boolean;
   [key: string]: any;
 }
 

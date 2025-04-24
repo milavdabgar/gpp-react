@@ -110,27 +110,15 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
     try {
       setLoading(true);
       
-      // Fetch departments
-      const deptsResponse = await fetch('/api/departments');
-      const deptsData = await deptsResponse.json();
-      setDepartments(deptsData.data.departments || []);
+      // Fetch active events
+      const eventsData = await projectService.getActiveEvents();
+      setActiveEvents(eventsData || []);
       
-      // Fetch faculties for guide selection
-      const facultiesResponse = await fetch('/api/faculty');
-      const facultiesData = await facultiesResponse.json();
-      setFaculties(facultiesData.data.faculty || []);
-      
-      // Only fetch active events if no event was provided via props
-      if (!event) {
-        const eventsData = await projectService.getActiveEvents();
-        setActiveEvents(eventsData as ProjectEvent[] || []);
-        
-        if (eventsData && eventsData.length > 0) {
-          setFormData(prev => ({
-            ...prev,
-            eventId: eventsData[0]._id
-          }));
-        }
+      if (eventsData && eventsData.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          eventId: eventsData[0]._id
+        }));
       }
       
       // If user is logged in, add department and prefill first team member

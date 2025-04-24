@@ -46,7 +46,7 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   const [statistics, setStatistics] = useState<ProjectStatistics | null>(null);
   const [categoryCounts, setCategoryCounts] = useState<CategoryCounts | null>(null);
   const [eventSchedule, setEventSchedule] = useState<any[]>([]);
-  const [activeEvent, setActiveEvent] = useState<string>(event._id || '');
+  const [activeEvent, setActiveEvent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -56,55 +56,15 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   const [departmentProjectsData, setDepartmentProjectsData] = useState<{ department: string; count: number; evaluatedCount: number }[]>([]);
   const [showCreateEventForm, setShowCreateEventForm] = useState(false);
 
-  // Load active event when component mounts
+  // Initialize with the provided event
   useEffect(() => {
-    const fetchActiveEvent = async () => {
-      try {
-        console.log('Fetching active event, event._id:', event._id);
-        // If there's no event ID, don't try to fetch projects
-        if (!event._id) {
-          console.log('No event ID provided, setting empty events array');
-          setEvents([]);
-          setActiveEvent('');
-          return;
-        }
-
-        // Get projects for the current event
-        console.log('Fetching projects for event:', event._id);
-        const projects = await projectService.getProjectsByEvent(event._id);
-        console.log('Projects fetched:', projects);
-        
-        // Check if projects is an array
-        if (!Array.isArray(projects)) {
-          console.error('Expected projects to be an array, got:', typeof projects);
-          setEvents([]);
-          return;
-        }
-        
-        // Create a single event object from the current event
-        const currentEvent: ProjectEvent = {
-          _id: event._id,
-          id: event._id,
-          title: event.title || `Event ${event._id}`,
-          description: event.description || '',
-          startDate: event.startDate || new Date().toISOString(),
-          endDate: event.endDate || new Date().toISOString(),
-          status: event.status || 'upcoming'
-        };
-        
-        console.log('Setting events with current event:', currentEvent);
-        // Set the events array with just the current event
-        setEvents([currentEvent]);
-        console.log('Setting active event to:', event._id);
-        setActiveEvent(event._id);
-      } catch (err) {
-        console.error('Error fetching active events:', err);
-        setError('Failed to load active events');
-      }
-    };
-
-    fetchActiveEvent();
-  }, [event._id]);
+    if (event?._id) {
+      console.log('Initializing with event:', event);
+      setEvents([event]);
+      setActiveEvent(event._id);
+      fetchProjectData();
+    }
+  }, [event]);
 
   // Load projects when active event changes
   useEffect(() => {
@@ -141,12 +101,14 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
       if (evaluationFilter === 'pendingCentral') filters.centralEvaluationStatus = 'pending';
       if (evaluationFilter === 'completedCentral') filters.centralEvaluationStatus = 'completed';
       
-      const data = await projectService.getAllProjects(filters);
-      setProjects(data);
+      const response = await projectService.getAllProjects(filters);
+      // Ensure response is properly handled and projects is always an array
+      setProjects(Array.isArray(response) ? response : []);
       setError(null);
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Failed to load projects');
+      setProjects([]); // Reset to empty array on error
     } finally {
       setLoading(false);
     }
@@ -588,8 +550,6 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
             projects.slice(0, 5).map((project, index) => (
               <div key={index} className="p-4 flex items-center justify-between">
                 <div>
-                  <span className="text-xs text-gray-500 block">{project._id}</span>
-                  <h4 className="font-medium">{project.title}</h4>
                   <div className="flex items-center mt-1 text-sm text-gray-600">
                     <span className="mr-3">{project.department}</span>
                     <span className="flex items-center">

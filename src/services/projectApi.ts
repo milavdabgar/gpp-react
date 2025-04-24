@@ -382,9 +382,14 @@ export const getAllEvents = async (): Promise<ProjectEvent[]> => {
   return response.data.data;
 };
 
+interface APIResponse<T> {
+  status: string;
+  data: T;
+}
+
 export const getActiveEvents = async (): Promise<ProjectEvent[]> => {
-  const response = await axios.get<{ data: ProjectEvent[] }>(`${API_URL}/events/active`);
-  return response.data.data;
+  const response = await axios.get<APIResponse<{ events: ProjectEvent[] }>>(`${API_URL}/events/active`);
+  return response.data.data.events;
 };
 
 export const getEvent = async (id: string): Promise<ProjectEvent> => {

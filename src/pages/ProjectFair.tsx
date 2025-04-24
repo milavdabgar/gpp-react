@@ -14,6 +14,26 @@ const ProjectFair: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Define emptyEvent at component level
+  const emptyEvent: ProjectEvent = {
+    _id: '',
+    id: '',
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    status: 'upcoming',
+    name: '',
+    eventDate: '',
+    registrationStartDate: '',
+    registrationEndDate: '',
+    isActive: false,
+    academicYear: '',
+    schedule: [],
+    departments: [],
+    publishResults: false
+  };
+
   useEffect(() => {
     const fetchActiveEvent = async () => {
       try {
@@ -21,11 +41,33 @@ const ProjectFair: React.FC = () => {
         console.log('Fetching active events...');
         const events = await getActiveEvents();
         console.log('Active events fetched:', events);
+        
+        // Check if we have events in the response
         if (events && events.length > 0) {
-          console.log('Setting active event to:', events[0]);
-          setActiveEvent(events[0]);
+          const event = events[0];
+          const formattedEvent: ProjectEvent = {
+            _id: event._id,
+            id: event._id,
+            title: event.name || '',
+            description: event.description || '',
+            startDate: event.registrationStartDate || '',
+            endDate: event.registrationEndDate || '',
+            status: event.status || 'upcoming',
+            name: event.name || '',
+            eventDate: event.eventDate || '',
+            registrationStartDate: event.registrationStartDate || '',
+            registrationEndDate: event.registrationEndDate || '',
+            isActive: event.isActive || false,
+            academicYear: event.academicYear || '',
+            schedule: event.schedule || [],
+            departments: event.departments || [],
+            publishResults: event.publishResults || false
+          };
+          console.log('Setting formatted active event:', formattedEvent);
+          setActiveEvent(formattedEvent);
         } else {
           console.log('No active events found');
+          setActiveEvent(null);
         }
         setError(null);
       } catch (err) {
@@ -72,8 +114,8 @@ const ProjectFair: React.FC = () => {
 
     // Allow admins to access admin section even without active event
     if (user?.roles?.includes('admin')) {
-      console.log('User is admin, rendering ProjectFairAdmin with event:', activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' });
-      return <ProjectFairAdmin event={activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' }} />;
+      console.log('User is admin, rendering ProjectFairAdmin with event:', activeEvent || emptyEvent);
+      return <ProjectFairAdmin event={activeEvent || emptyEvent} />;
     }
 
     if (!activeEvent) {
@@ -89,7 +131,7 @@ const ProjectFair: React.FC = () => {
                   As an admin, you can create a new project fair event.
                 </p>
                 <div className="mt-8">
-                  <ProjectFairAdmin event={{ _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'draft' }} />
+                  <ProjectFairAdmin event={emptyEvent} />
                 </div>
               </div>
             </div>
@@ -129,7 +171,7 @@ const ProjectFair: React.FC = () => {
     <Routes>
       <Route path="/" element={renderComponent()} />
       <Route path="/register" element={activeEvent ? <ProjectRegistrationForm event={activeEvent} /> : <Navigate to="/" replace />} />
-      <Route path="/admin/*" element={user?.roles?.includes('admin') ? <ProjectFairAdmin event={activeEvent || { _id: '', id: '', title: '', description: '', startDate: '', endDate: '', status: 'inactive' }} /> : <Navigate to="/" replace />} />
+      <Route path="/admin/*" element={user?.roles?.includes('admin') ? <ProjectFairAdmin event={activeEvent || emptyEvent} /> : <Navigate to="/" replace />} />
       <Route path="/jury/*" element={user?.roles?.includes('jury') && activeEvent ? <JuryEvaluation event={activeEvent} /> : <Navigate to="/" replace />} />
       <Route path="/student/*" element={user?.roles?.includes('student') && activeEvent ? <ProjectFairStudent event={activeEvent} /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

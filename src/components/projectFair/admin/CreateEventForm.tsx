@@ -14,11 +14,27 @@ interface CreateEventFormProps {
   onCancel: () => void;
 }
 
+type EventStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+
+interface FormData {
+  name: string;
+  description: string;
+  academicYear: string;
+  eventDate: string;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  status: EventStatus;
+  isActive: boolean;
+  publishResults: boolean;
+  departments: string[];
+  schedule: any[];
+}
+
 const CreateEventForm: React.FC<CreateEventFormProps> = ({ onEventCreated, onCancel }) => {
   const { showToast } = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
     academicYear: '',
@@ -28,8 +44,8 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onEventCreated, onCan
     status: 'upcoming',
     isActive: true,
     publishResults: false,
-    departments: [] as string[],
-    schedule: [] as any[]
+    departments: [],
+    schedule: []
   });
 
   useEffect(() => {
@@ -269,4 +285,4 @@ const CreateEventForm: React.FC<CreateEventFormProps> = ({ onEventCreated, onCan
   );
 };
 
-export default CreateEventForm; 
+export default CreateEventForm;
