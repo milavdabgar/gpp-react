@@ -659,6 +659,19 @@ export const exportDummyData = async (dataType = 'projects'): Promise<void> => {
   }
 };
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  roles: string[];
+  department?: string;
+}
+
+export const getUsersByRole = async (role: string): Promise<User[]> => {
+  const response = await axios.get<{ data: { users: User[] } }>(`/api/admin/users?role=${role}`);
+  return response.data.data.users;
+};
+
 export default {
   // Projects
   getAllProjects,
@@ -738,5 +751,8 @@ export default {
   autoAssignLocations,
   
   // Dummy data export
-  exportDummyData
-};
+  exportDummyData,
+
+  // Users
+  getUsersByRole,
+}

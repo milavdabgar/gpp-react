@@ -145,12 +145,24 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
 
   const fetchJuryMembers = async () => {
     try {
-      // Using admin route to get users with jury role
-      const response = await fetch('/api/admin/users?role=jury');
-      const data = await response.json();
-      setJuryMembers(data.data.users);
+      setLoading(true);
+      const response = await projectService.getUsersByRole('jury');
+      // Map User data to JuryMember format
+      const juryData = Array.isArray(response) ? response.map(user => ({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        department: user.department || 'Unknown',
+        roles: user.roles
+      })) : [];
+      setJuryMembers(juryData);
+      setError(null);
     } catch (err) {
       console.error('Error fetching jury members:', err);
+      setError('Failed to load jury members');
+      setJuryMembers([]); // Reset to empty array on error
+    } finally {
+      setLoading(false);
     }
   };
 
