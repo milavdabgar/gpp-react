@@ -1,7 +1,7 @@
 import axios from '../utils/axios';
 import { Project, Team, ProjectEvent, Location, ProjectStatistics, EvaluationData, CategoryCounts, Winner, EmailData } from '../types/project.types';
 
-const API_URL = '/projects';
+const API_URL = '/api/projects'; // This will be appended to baseURL from axios instance
 
 // Project Services
 interface Filters {
@@ -286,7 +286,6 @@ export const importProjectsFromCsv = async (file: File) => {
   }
 };
 
-// Team Services
 export const getAllTeams = async (filters = {}) => {
   const params = new URLSearchParams();
   
@@ -374,7 +373,7 @@ export const importTeamsFromCsv = async (file: File): Promise<Team[]> => {
   return response.data.data;
 };
 
-// ...
+// ...continued
 
 // Event Services
 export const getAllEvents = async (): Promise<ProjectEvent[]> => {

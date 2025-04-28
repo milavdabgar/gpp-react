@@ -33,7 +33,6 @@ const LocationAssignmentsTab: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [availableSections, setAvailableSections] = useState<string[]>([]);
 
-  // Load active event when component mounts
   useEffect(() => {
     const fetchActiveEvent = async () => {
       try {
@@ -49,24 +48,17 @@ const LocationAssignmentsTab: React.FC = () => {
     fetchActiveEvent();
   }, []);
 
-  // Load locations when active event changes or section changes
-  useEffect(() => {
-    if (activeEvent) {
-      fetchLocationData();
-      fetchUnassignedProjects();
-    }
-  }, [activeEvent, selectedSection]);
-
-  // Fetch available sections
   useEffect(() => {
     if (activeEvent) {
       const fetchSections = async () => {
         try {
-          const allLocations = await projectService.getAllLocations({ eventId: activeEvent });
-          const sections = Array.from(new Set(allLocations.map((loc: any) => loc.section)));
+          const response = await projectService.getAllLocations({ eventId: activeEvent });
+          const allLocations = Array.isArray(response) ? response : [];
+          const sections = Array.from(new Set(allLocations.map(loc => loc.section))).filter(Boolean);
           setAvailableSections(sections.sort());
         } catch (err) {
           console.error('Error fetching sections:', err);
+          setAvailableSections([]);
         }
       };
       
@@ -77,14 +69,15 @@ const LocationAssignmentsTab: React.FC = () => {
   const fetchLocationData = async () => {
     try {
       setLoading(true);
-      const data = await projectService.getAllLocations({ 
+      const response = await projectService.getAllLocations({ 
         eventId: activeEvent,
         section: selectedSection
       });
       
-      // Convert to LocationData type and sort by position
-      const locationData = data.map((loc: any) => ({
-        _id: loc._id,
+      const data = Array.isArray(response) ? response : [];
+      
+      const locationData = data.map(loc => ({
+        _id: loc._id || '',
         locationId: loc.locationId || '',
         section: loc.section || '',
         position: loc.position || 0,
@@ -93,12 +86,13 @@ const LocationAssignmentsTab: React.FC = () => {
         projectId: loc.projectId || null,
         isAssigned: !!loc.projectId
       }));
-      
+
       const sortedLocations = locationData.sort((a, b) => a.position - b.position);
       setLocations(sortedLocations);
     } catch (err) {
       console.error('Error fetching locations:', err);
       toast.error('Failed to load locations');
+      setLocations([]);
     } finally {
       setLoading(false);
     }
@@ -106,27 +100,26 @@ const LocationAssignmentsTab: React.FC = () => {
 
   const fetchUnassignedProjects = async () => {
     try {
-      const allProjects = await projectService.getAllProjects({ 
+      const response = await projectService.getAllProjects({ 
         eventId: activeEvent,
         status: 'approved'
       });
       
-      // Filter out projects that already have a location assigned
+      const allProjects = Array.isArray(response) ? response : [];
       const unassigned = allProjects.filter(project => !project.locationId);
       setUnassignedProjects(unassigned);
     } catch (err) {
       console.error('Error fetching unassigned projects:', err);
+      setUnassignedProjects([]);
     }
   };
 
   const handleAssignProject = async (location: LocationData, projectId: string) => {
     try {
-      await projectService.assignProjectToLocation(location._id, projectId);
+      await projectService.assignProjectToLocation(location.locationId, projectId);
       toast.success('Project assigned successfully');
-      
-      // Refresh data
-      fetchLocationData();
-      fetchUnassignedProjects();
+      await fetchLocationData();
+      await fetchUnassignedProjects();
     } catch (err) {
       console.error('Error assigning project:', err);
       toast.error('Failed to assign project');
@@ -135,7 +128,7 @@ const LocationAssignmentsTab: React.FC = () => {
 
   const handleUnassignProject = async (location: LocationData) => {
     try {
-      await projectService.unassignProjectFromLocation(location._id);
+      await projectService.unassignProjectFromLocation(location.locationId);
       toast.success('Project unassigned successfully');
       
       // Refresh data

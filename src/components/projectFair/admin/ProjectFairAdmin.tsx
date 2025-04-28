@@ -253,14 +253,29 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   // Fetch department data
   const fetchDepartmentData = async () => {
     try {
-      const projects = await projectService.getAllProjects({ eventId: activeEvent });
+      const response = await projectService.getAllProjects({ eventId: activeEvent });
+      const projects = Array.isArray(response) ? response : [];
+      
+      if (projects.length === 0) {
+        setDepartmentProjectsData([]);
+        return;
+      }
+
       const departmentCounts = projects.reduce<Record<string, { count: number; evaluatedCount: number }>>((acc, project) => {
-        if (!acc[project.department]) {
-          acc[project.department] = { count: 0, evaluatedCount: 0 };
+        // Handle both string and object department values
+        const deptName = typeof project.department === 'string' 
+          ? project.department 
+          : project.department?.name || 'Unknown';
+
+        if (!acc[deptName]) {
+          acc[deptName] = { count: 0, evaluatedCount: 0 };
         }
-        acc[project.department].count += 1;
-        if (project.evaluated) {
-          acc[project.department].evaluatedCount += 1;
+        acc[deptName].count += 1;
+
+        // Check for evaluation completion
+        const isEvaluated = project.deptEvaluation?.completed || project.centralEvaluation?.completed;
+        if (isEvaluated) {
+          acc[deptName].evaluatedCount += 1;
         }
         return acc;
       }, {});
@@ -274,6 +289,7 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
       setDepartmentProjectsData(departmentData);
     } catch (err) {
       console.error('Error fetching department data:', err);
+      setDepartmentProjectsData([]);
     }
   };
 
@@ -551,7 +567,11 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
               <div key={index} className="p-4 flex items-center justify-between">
                 <div>
                   <div className="flex items-center mt-1 text-sm text-gray-600">
-                    <span className="mr-3">{project.department}</span>
+                    <span className="mr-3">
+                      {typeof project.department === 'string' 
+                        ? project.department 
+                        : project.department?.name || 'Unknown'}
+                    </span>
                     <span className="flex items-center">
                       <User size={14} className="mr-1" />
                       {typeof project.team === 'string' ? project.team : project.team.name}
@@ -744,7 +764,9 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
                       {project.title}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {project.department}
+                      {typeof project.department === 'string' 
+                        ? project.department 
+                        : project.department?.name || 'Unknown'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {typeof project.team === 'string' ? project.team : project.team.name}

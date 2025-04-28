@@ -3,11 +3,33 @@ export interface Project {
   title: string;
   description: string;
   team: string | Team;
-  department: string;
+  department: string | { _id: string; name: string; code?: string };
   status: string;
   evaluated?: boolean;
   score?: number;
   feedback?: string;
+  requirements?: {
+    power: boolean;
+    internet: boolean;
+    specialSpace: boolean;
+    otherRequirements?: string;
+  };
+  deptEvaluation?: {
+    completed: boolean;
+    score?: number;
+    feedback?: string;
+    juryId?: string;
+    evaluatedAt?: string;
+    criteria?: Record<string, number>;
+  };
+  centralEvaluation?: {
+    completed: boolean;
+    score?: number;
+    feedback?: string;
+    juryId?: string;
+    evaluatedAt?: string;
+    criteria?: Record<string, number>;
+  };
   [key: string]: any;
 }
 

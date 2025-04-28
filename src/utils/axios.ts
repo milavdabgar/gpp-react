@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:9000/api'
+  baseURL: 'http://localhost:9000' // Remove /api since it will be included in the service URLs
 });
 
 // Add a request interceptor

@@ -103,14 +103,15 @@ const JuryEvaluation: React.FC<JuryEvaluationProps> = ({ event }) => {
       setComments(project.deptEvaluation.feedback || '');
       
       // If detailed criteria scoring is available
-      if (project.deptEvaluation.criteria) {
-        Object.keys(project.deptEvaluation.criteria).forEach(key => {
-          initialScores[key] = project.deptEvaluation.criteria?.[key] || 0;
+      const deptCriteria = project.deptEvaluation?.criteria;
+      if (deptCriteria) {
+        Object.keys(deptCriteria).forEach(key => {
+          initialScores[key] = deptCriteria[key] || 0;
         });
       } else {
         // Distribute the score evenly if no detailed scoring is available
         const totalMaxScore = evaluationCriteria.department.reduce((sum, criteria) => sum + criteria.maxScore, 0);
-        const totalScore = project.deptEvaluation.score || 0;
+        const totalScore = project.deptEvaluation?.score || 0;
         
         evaluationCriteria.department.forEach(criteria => {
           const proportion = criteria.maxScore / totalMaxScore;
@@ -121,14 +122,15 @@ const JuryEvaluation: React.FC<JuryEvaluationProps> = ({ event }) => {
       setComments(project.centralEvaluation.feedback || '');
       
       // If detailed criteria scoring is available
-      if (project.centralEvaluation.criteria) {
-        Object.keys(project.centralEvaluation.criteria).forEach(key => {
-          initialScores[key] = project.centralEvaluation.criteria?.[key] || 0;
+      const centralCriteria = project.centralEvaluation?.criteria;
+      if (centralCriteria) {
+        Object.keys(centralCriteria).forEach(key => {
+          initialScores[key] = centralCriteria[key] || 0;
         });
       } else {
         // Distribute the score evenly if no detailed scoring is available
         const totalMaxScore = evaluationCriteria.central.reduce((sum, criteria) => sum + criteria.maxScore, 0);
-        const totalScore = project.centralEvaluation.score || 0;
+        const totalScore = project.centralEvaluation?.score || 0;
         
         evaluationCriteria.central.forEach(criteria => {
           const proportion = criteria.maxScore / totalMaxScore;
