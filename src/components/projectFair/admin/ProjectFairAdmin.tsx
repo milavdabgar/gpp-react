@@ -19,6 +19,7 @@ import LocationAssignmentsTab from './LocationAssignmentsTab';
 import ScheduleTab from './ScheduleTab';
 import ResultsCertificatesTab from './ResultsCertificatesTab';
 import CreateEventForm from './CreateEventForm';
+import ProjectForm from './ProjectForm';
 import projectService from '../../../services/projectApi';
 import { Project, Team, ProjectEvent, ProjectStatistics, CategoryCounts } from '../../../types/project.types';
 import { toast } from 'react-toastify';
@@ -39,6 +40,7 @@ interface ProjectFairAdminProps {
 export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  const [showProjectForm, setShowProjectForm] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [events, setEvents] = useState<ProjectEvent[]>([]);
@@ -639,12 +641,12 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
           </div>
           <div className="flex space-x-2">
             <button
-              onClick={handleCreateSampleProjects}
-              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md shadow-sm"
+              onClick={() => setShowProjectForm(true)}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm"
               disabled={loading}
             >
               <Plus size={16} className="mr-2" />
-              Add Sample Projects
+              Add New Project
             </button>
             <label className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm cursor-pointer">
               <Upload size={16} className="mr-2" />
@@ -1016,8 +1018,21 @@ export default function ProjectFairAdmin({ event }: ProjectFairAdminProps) {
     }
   };
 
+  // Update fetchProjectData to be callable from ProjectForm
+  const handleProjectCreated = () => {
+    fetchProjectData();
+  };
+
   return (
     <div className="p-4">
+      {showProjectForm && (
+        <ProjectForm
+          onClose={() => setShowProjectForm(false)}
+          onProjectCreated={handleProjectCreated}
+          eventId={activeEvent}
+        />
+      )}
+      {/* Rest of the existing JSX */}
       {/* Event Selector */}
       {events.length > 0 && (
         <div className="mb-4">

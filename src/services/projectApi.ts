@@ -672,6 +672,21 @@ export const getUsersByRole = async (role: string): Promise<User[]> => {
   return response.data.data.users;
 };
 
+interface DepartmentResponse {
+  data: {
+    departments: Array<{
+      _id: string;
+      name: string;
+      code: string;
+    }>;
+  };
+}
+
+export const getDepartments = async () => {
+  const response = await axios.get<DepartmentResponse>('/api/departments');
+  return response.data.data.departments;
+};
+
 export default {
   // Projects
   getAllProjects,
@@ -755,4 +770,5 @@ export default {
 
   // Users
   getUsersByRole,
+  getDepartments,
 }
