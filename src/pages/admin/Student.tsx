@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FormEvent } from 'react';
-import { ChevronUp, ChevronDown, Download, Upload, Edit, Trash2, Search } from 'lucide-react';
+import { ChevronUp, ChevronDown, Download, Upload, Edit, Trash2, Search, Loader } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api, { studentApi } from '../../services/api';
@@ -141,22 +141,24 @@ const Student = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedBatch, setSelectedBatch] = useState<string>('all');
   const { user: currentUser } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const studentsPerPage = 100;
 
-  // Fetch students
+  // Fetch students when page changes
   useEffect(() => {
-    fetchUsers();
     fetchStudentData();
-  }, []);
+  }, [currentPage]);
 
   const fetchStudentData = async () => {
     setIsLoading(true);
     try {
-      const studentResponse = await studentApi.getAllStudents();
+      const studentResponse = await studentApi.getAllStudents(currentPage, studentsPerPage);
       const studentsWithDetails = studentResponse.data.students.map((s: any) => ({
         ...s,
         user: s.userId && typeof s.userId === 'object' ? s.userId : null,
         department: s.departmentId && typeof s.departmentId === 'object' ? s.departmentId : null,
-        // Ensure we always have string IDs
         userId: s.userId && typeof s.userId === 'object' ? s.userId._id : s.userId,
         departmentId: s.departmentId && typeof s.departmentId === 'object' ? s.departmentId._id : s.departmentId
       }));
@@ -164,6 +166,8 @@ const Student = () => {
         ...s,
         educationBackground: transformEducationBackground(s.educationBackground)
       })));
+      setTotalPages(studentResponse.data.pagination.totalPages);
+      setTotalStudents(studentResponse.data.pagination.total);
     } catch (error) {
       console.error('Error fetching students:', error);
       showToast('Error fetching student data', 'error');
@@ -341,8 +345,15 @@ const Student = () => {
 
     try {
       setIsLoading(true);
+      // Check if it's a GTU student data file
+      const isGTUData = file.name.toLowerCase().includes('studentdata');
+      
+      if (isGTUData) {
+        showToast('Importing GTU student data...', 'info');
+      }
+
       const response = await studentApi.uploadStudentsCsv(formData);
-      showToast('Student data uploaded successfully', 'success');
+      showToast(`Successfully imported ${response.data.count} students`, 'success');
       fetchStudentData(); // Refresh the student list
     } catch (error) {
       console.error('Error uploading student data:', error);
@@ -408,7 +419,7 @@ const Student = () => {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Student Management</h1>
         <div className="flex gap-2">
@@ -416,13 +427,26 @@ const Student = () => {
             type="button"
             onClick={handleExportCsv}
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            disabled={isLoading}
           >
             <Download className="h-4 w-4 mr-2" />
             Export
           </button>
-          <label htmlFor="csvUpload" className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
-            <Upload className="h-4 w-4 mr-2" />
-            Import
+          <label 
+            htmlFor="csvUpload" 
+            className={`inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isLoading ? (
+              <>
+                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Import GTU Data
+              </>
+            )}
           </label>
           <input
             id="csvUpload"
@@ -430,6 +454,7 @@ const Student = () => {
             accept=".csv"
             className="hidden"
             onChange={handleImportCsv}
+            disabled={isLoading}
           />
           <button
             type="button"
@@ -582,6 +607,32 @@ const Student = () => {
         </table>
       </div>
 
+      {/* Pagination controls */}
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm text-gray-700">
+          Showing {((currentPage - 1) * studentsPerPage) + 1} to {Math.min(currentPage * studentsPerPage, totalStudents)} of {totalStudents} students
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded-md disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded-md disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+      
       {/* Edit Student Modal */}
       {showEditModal && selectedStudent && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">

@@ -48,6 +48,10 @@ export interface Student {
   _id: string;
   userId: string;
   departmentId: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  fullName: string;
   enrollmentNo: string;
   batch: string;
   semester: number;

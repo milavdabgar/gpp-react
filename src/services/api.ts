@@ -187,7 +187,7 @@ export const studentApi = {
   },
 
   uploadStudentsCsv: async (formData: FormData) => {
-    const response = await api.post<ApiResponse<{ message: string }>>('/students/upload-csv', formData, {
+    const response = await api.post<ApiResponse<{ results: Student[]; count: number }>>('/students/upload-csv', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -195,9 +195,19 @@ export const studentApi = {
     return response.data;
   },
 
-  getAllStudents: async () => {
-    console.log('Fetching all students...');
-    const response = await api.get<ApiResponse<{ students: Student[] }>>('/students');
+  getAllStudents: async (page = 1, limit = 100) => {
+    console.log('Fetching students with pagination...');
+    const response = await api.get<ApiResponse<{ 
+      students: Student[],
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      }
+    }>>('/students', {
+      params: { page, limit }
+    });
     console.log('Student response:', response.data);
     return response.data;
   },
