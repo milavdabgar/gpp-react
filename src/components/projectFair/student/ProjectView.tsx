@@ -129,7 +129,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ projectId, event }) => {
             {teamMembers.length > 0 ? (
               teamMembers.map((member: any, index: number) => (
                 <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                  <div className="font-medium">{member.name}</div>
+                  <div className="font-medium">{member.fullName || member.name}</div>
                   <div className="text-sm text-gray-500">{member.enrollmentNo || 'No enrollment number'}</div>
                   <div className="text-sm text-blue-600">
                     {member.isLeader ? 'Team Leader' : member.role || 'Member'}

@@ -156,7 +156,7 @@ const ProjectRegistrationForm: React.FC<ProjectRegistrationFormProps> = ({ event
         if (firstTeam.members && firstTeam.members.length > 0) {
           const mappedMembers = firstTeam.members.map((member: any, index) => ({
             id: index + 1,
-            name: member.name || (member.userId && typeof member.userId === 'object' ? member.userId.name : ''),
+            name: member.fullName || member.name || (member.userId && typeof member.userId === 'object' ? member.userId.name : ''),
             enrollmentNo: member.enrollmentNo || '',
             role: member.role || (index === 0 ? 'Team Leader' : 'Member'),
             isLeader: member.isLeader || index === 0

@@ -74,6 +74,10 @@ interface StudentWithDetails {
   semester: number;
   admissionDate: string;
   status: string;
+  fullName?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
   guardian: {
     name: string;
     relation: string;
@@ -92,6 +96,13 @@ interface StudentWithDetails {
   user?: UserType;
   department?: DepartmentType;
 }
+
+interface GTUImportResponse {
+    results: StudentWithDetails[];
+    count: number;
+    errors?: { row: number; error: string }[];
+    warnings?: { row: number; warning: string }[];
+  }
 
 const Student = () => {
   const { showToast } = useToast();
@@ -157,10 +168,11 @@ const Student = () => {
       const studentResponse = await studentApi.getAllStudents(currentPage, studentsPerPage);
       const studentsWithDetails = studentResponse.data.students.map((s: any) => ({
         ...s,
-        user: s.userId && typeof s.userId === 'object' ? s.userId : null,
-        department: s.departmentId && typeof s.departmentId === 'object' ? s.departmentId : null,
-        userId: s.userId && typeof s.userId === 'object' ? s.userId._id : s.userId,
-        departmentId: s.departmentId && typeof s.departmentId === 'object' ? s.departmentId._id : s.departmentId
+        // Properly handle the populated userId object
+        user: (s.userId && typeof s.userId === 'object') ? s.userId : null,
+        department: (s.departmentId && typeof s.departmentId === 'object') ? s.departmentId : null,
+        userId: (s.userId && typeof s.userId === 'object') ? s.userId._id : s.userId,
+        departmentId: (s.departmentId && typeof s.departmentId === 'object') ? s.departmentId._id : s.departmentId
       }));
       setStudents(studentsWithDetails.map((s: any) => ({
         ...s,
@@ -350,11 +362,19 @@ const Student = () => {
       
       if (isGTUData) {
         showToast('Importing GTU student data...', 'info');
+        const response = await studentApi.uploadStudentsCsv(formData) as { data: GTUImportResponse };
+        if (response.data?.warnings) {
+          showToast(`Import completed with ${response.data.warnings.length} warnings`, 'warning');
+        }
+        showToast(`Successfully imported ${response.data.count} students`, 'success');
+        // Refresh the data to show updated names
+        await fetchStudentData();
+        await fetchUsers();
+      } else {
+        const response = await studentApi.uploadStudentsCsv(formData);
+        showToast(`Successfully imported ${response.data.count} students`, 'success');
+        fetchStudentData();
       }
-
-      const response = await studentApi.uploadStudentsCsv(formData);
-      showToast(`Successfully imported ${response.data.count} students`, 'success');
-      fetchStudentData(); // Refresh the student list
     } catch (error) {
       console.error('Error uploading student data:', error);
       showToast('Failed to upload student data', 'error');
@@ -576,7 +596,9 @@ const Student = () => {
               filteredStudents.map((student) => (
                 <tr key={student._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.enrollmentNo}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.user?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {student.user?.name || student.fullName || 'N/A'}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.batch}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.department?.name || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.semester}</td>

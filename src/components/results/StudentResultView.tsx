@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Book, Check, X, Award, Info } from 'lucide-react';
-import { resultApi } from '../../services/api';
+import { resultApi, studentApi } from '../../services/api';
 import { Result, Subject, ResultsResponse } from '../../types/result';
 import { useToast } from '../../context/ToastContext';
+import { Student } from '../../types/api';
 
 interface StudentResultViewProps {
   studentId: string;
@@ -10,24 +11,30 @@ interface StudentResultViewProps {
 
 const StudentResultView: React.FC<StudentResultViewProps> = ({ studentId }) => {
   const [results, setResults] = useState<Result[]>([]);
+  const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
     if (studentId) {
-      fetchResults();
+      fetchStudentAndResults();
     }
   }, [studentId]);
 
-  const fetchResults = async () => {
+  const fetchStudentAndResults = async () => {
     setIsLoading(true);
     try {
-      const response = await resultApi.getStudentResults(studentId) as ResultsResponse;
-      setResults(response.data.results);
+      type StudentResponse = { status: string; data: { student: Student } };
+      const [studentResponse, resultsResponse] = await Promise.all([
+        studentApi.getStudent(studentId) as Promise<StudentResponse>,
+        resultApi.getStudentResults(studentId) as Promise<ResultsResponse>
+      ]);
+      setStudent(studentResponse.data.student);
+      setResults(resultsResponse.data.results);
     } catch (error) {
-      console.error('Error fetching student results:', error);
-      showToast('Failed to load results', 'error');
+      console.error('Error fetching student data:', error);
+      showToast('Failed to load student data', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -79,9 +86,9 @@ const StudentResultView: React.FC<StudentResultViewProps> = ({ studentId }) => {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Academic Results</h2>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Academic Results for {student?.user?.name || 'N/A'}</h2>
       </div>
 
       {isLoading ? (
@@ -237,6 +244,7 @@ const StudentResultView: React.FC<StudentResultViewProps> = ({ studentId }) => {
               )}
             </div>
           ))}
+
         </div>
       )}
     </div>
