@@ -15,7 +15,6 @@ export interface Subject {
     declarationDate: string;
     academicYear: string;
     semester: number;
-    mapNumber: number;
     unitNo: number;
     examNumber: number;
     name: string;
