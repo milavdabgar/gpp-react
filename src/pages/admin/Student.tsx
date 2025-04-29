@@ -94,7 +94,7 @@ interface StudentWithDetails {
   user?: UserType;
   department?: DepartmentType;
   admissionYear: number;
-  convoyYear?: number;
+  convoYear?: number;
   isComplete: boolean;
   termClose: boolean;
   isCancel: boolean;
@@ -583,7 +583,7 @@ const Student = () => {
                     {student.admissionYear || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {student.convoyYear || 'N/A'}
+                    {student.convoYear || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {getStudentStatus(student)}

@@ -106,7 +106,7 @@ export default function ProjectFairAdmin() {
       name: 'Dr. Amit Patel', 
       type: 'department', 
       department: 'Computer Engineering', 
-      email: 'amit.patel@gppalanpur.ac.in',
+      email: 'amit.patel@gppalanpur.in',
       assignedProjects: 5,
       evaluatedProjects: 3
     },
@@ -115,7 +115,7 @@ export default function ProjectFairAdmin() {
       name: 'Prof. Sanjay Mehta', 
       type: 'department', 
       department: 'Electrical Engineering', 
-      email: 'sanjay.mehta@gppalanpur.ac.in',
+      email: 'sanjay.mehta@gppalanpur.in',
       assignedProjects: 4,
       evaluatedProjects: 2
     },

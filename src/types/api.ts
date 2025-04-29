@@ -70,7 +70,7 @@ export interface Student {
     _id: string;
     name: string;
   };
-  convoyYear?: number;
+  convoYear?: number;
   isComplete: boolean;
   termClose: boolean;
   isCancel: boolean;
