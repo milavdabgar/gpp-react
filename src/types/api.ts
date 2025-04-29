@@ -109,7 +109,7 @@ export interface Result {
   createdAt: string;
 }
 
-export type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionDate';
+export type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionYear';
 export type SortOrder = 'asc' | 'desc';
 
 export interface CreateStudentDto {

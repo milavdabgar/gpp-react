@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api, { studentApi } from '../../services/api';
 
-type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionDate';
+type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionYear';
 type SortOrder = 'asc' | 'desc';
 
 interface User {
@@ -71,7 +71,6 @@ interface StudentWithDetails {
   enrollmentNo: string;
   batch: string;
   semester: number;
-  admissionDate: string;
   status: string;
   fullName?: string;
   firstName?: string;
@@ -400,8 +399,8 @@ const Student = () => {
   };
 
   const sortedStudents = students.sort((a, b) => {
-    let compareA: string | number | Date = '';
-    let compareB: string | number | Date = '';
+    let compareA: string | number = '';
+    let compareB: string | number = '';
 
     switch (sortField) {
       case 'enrollmentNo':
@@ -416,9 +415,9 @@ const Student = () => {
         compareA = a.department?.name || '';
         compareB = b.department?.name || '';
         break;
-      case 'admissionDate':
-        compareA = new Date(a.admissionDate);
-        compareB = new Date(b.admissionDate);
+      case 'admissionYear':
+        compareA = a.admissionYear || 0;
+        compareB = b.admissionYear || 0;
         break;
     }
 
@@ -661,6 +660,7 @@ const Student = () => {
                   semester: parseInt(formData.get('semester')?.toString() || '1'),
                   departmentId: formData.get('departmentId')?.toString() || '',
                   status: formData.get('status')?.toString() || 'active',
+                  admissionYear: parseInt(formData.get('admissionYear')?.toString() || '0'),
                   guardian: {
                     name: formData.get('guardianName')?.toString() || '',
                     relation: formData.get('guardianRelation')?.toString() || '',
@@ -909,15 +909,9 @@ const Student = () => {
 
       {/* Add Student Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Add Student</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-500">
-                &times;
-              </button>
-            </div>
-
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Add Student</h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
@@ -931,7 +925,7 @@ const Student = () => {
                   batch: formData.get('batch')?.toString() || '',
                   semester: parseInt(formData.get('semester')?.toString() || '1'),
                   departmentId: formData.get('departmentId')?.toString() || '',
-                  admissionYear: parseInt((formData.get('enrollmentNo')?.toString() || '').substring(0, 4)),
+                  admissionYear: parseInt(formData.get('admissionYear')?.toString() || new Date().getFullYear().toString()),
                   status: formData.get('status')?.toString() || 'active',
                   guardian: {
                     name: formData.get('guardianName')?.toString() || '',
@@ -985,40 +979,6 @@ const Student = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Department</label>
-                <select
-                  name="departmentId"
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Enrollment Number</label>
-                <input
-                  type="text"
-                  name="enrollmentNo"
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
