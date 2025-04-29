@@ -55,7 +55,7 @@ export interface Student {
   enrollmentNo: string;
   batch: string;
   semester: number;
-  admissionDate: string;
+  admissionYear: number;
   status: string;
   guardian: StudentGuardian;
   contact: StudentContact;
@@ -70,6 +70,11 @@ export interface Student {
     _id: string;
     name: string;
   };
+  convoyYear?: number;
+  isComplete: boolean;
+  termClose: boolean;
+  isCancel: boolean;
+  isPassAll: boolean;
 }
 
 export interface Subject {
@@ -113,7 +118,7 @@ export interface CreateStudentDto {
   enrollmentNo: string;
   batch: string;
   semester: number;
-  admissionDate: string;
+  admissionYear: number;
   status: string;
   guardian: StudentGuardian;
   contact: StudentContact;

@@ -46,7 +46,6 @@ interface CreateStudentDto {
   enrollmentNo: string;
   batch: string;
   semester: number;
-  admissionDate: string;
   status: string;
   guardian: {
     name: string;
@@ -95,6 +94,12 @@ interface StudentWithDetails {
   educationBackground?: EducationBackground[];
   user?: UserType;
   department?: DepartmentType;
+  admissionYear: number;
+  convoyYear?: number;
+  isComplete: boolean;
+  termClose: boolean;
+  isCancel: boolean;
+  isPassAll: boolean;
 }
 
 interface GTUImportResponse {
@@ -232,7 +237,7 @@ const Student = () => {
               batch: batchOptions[0],
               semester: 1,
               departmentId: user.department as string,
-              admissionDate: new Date().toISOString().split('T')[0],
+              admissionYear: new Date().getFullYear(),
               status: 'active',
               guardian: {
                 name: 'Guardian Name',
@@ -362,17 +367,17 @@ const Student = () => {
       
       if (isGTUData) {
         showToast('Importing GTU student data...', 'info');
-        const response = await studentApi.uploadStudentsCsv(formData) as { data: GTUImportResponse };
-        if (response.data?.warnings) {
-          showToast(`Import completed with ${response.data.warnings.length} warnings`, 'warning');
+        const response = await studentApi.uploadStudentsCsv(formData);
+        if (response.warnings) {
+          showToast(`Import completed with ${response.warnings.length} warnings`, 'warning');
         }
-        showToast(`Successfully imported ${response.data.count} students`, 'success');
+        showToast(`Successfully imported ${response.count} students`, 'success');
         // Refresh the data to show updated names
         await fetchStudentData();
         await fetchUsers();
       } else {
         const response = await studentApi.uploadStudentsCsv(formData);
-        showToast(`Successfully imported ${response.data.count} students`, 'success');
+        showToast(`Successfully imported ${response.count} students`, 'success');
         fetchStudentData();
       }
     } catch (error) {
@@ -529,10 +534,8 @@ const Student = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th
-                onClick={() => handleSort('enrollmentNo')}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              >
+              <th onClick={() => handleSort('enrollmentNo')} 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                 Enrollment No
                 {sortField === 'enrollmentNo' && (
                   sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
@@ -541,35 +544,11 @@ const Student = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Name
               </th>
-              <th
-                onClick={() => handleSort('batch')}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              >
-                Batch
-                {sortField === 'batch' && (
-                  sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
-                )}
-              </th>
-              <th
-                onClick={() => handleSort('department')}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              >
-                Department
-                {sortField === 'department' && (
-                  sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
-                )}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Admission Year
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Semester
-              </th>
-              <th
-                onClick={() => handleSort('admissionDate')}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-              >
-                Admission Date
-                {sortField === 'admissionDate' && (
-                  sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
-                )}
+                Convoy Year
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -582,31 +561,33 @@ const Student = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="px-6 py-4 text-center">
+                <td colSpan={6} className="px-6 py-4 text-center">
                   Loading...
                 </td>
               </tr>
             ) : filteredStudents.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-4 text-center">
+                <td colSpan={6} className="px-6 py-4 text-center">
                   No students found
                 </td>
               </tr>
             ) : (
               filteredStudents.map((student) => (
                 <tr key={student._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.enrollmentNo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {student.enrollmentNo}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {student.user?.name || student.fullName || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.batch}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.department?.name || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.semester}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(student.admissionDate).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {student.status}
-                    </span>
+                    {student.admissionYear || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {student.convoyYear || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {getStudentStatus(student)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
@@ -679,7 +660,6 @@ const Student = () => {
                   batch: formData.get('batch')?.toString() || '',
                   semester: parseInt(formData.get('semester')?.toString() || '1'),
                   departmentId: formData.get('departmentId')?.toString() || '',
-                  admissionDate: formData.get('admissionDate')?.toString() || '',
                   status: formData.get('status')?.toString() || 'active',
                   guardian: {
                     name: formData.get('guardianName')?.toString() || '',
@@ -785,17 +765,6 @@ const Student = () => {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Admission Date</label>
-                <input
-                  type="date"
-                  name="admissionDate"
-                  defaultValue={selectedStudent.admissionDate.split('T')[0]}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
               </div>
 
               <div>
@@ -962,7 +931,7 @@ const Student = () => {
                   batch: formData.get('batch')?.toString() || '',
                   semester: parseInt(formData.get('semester')?.toString() || '1'),
                   departmentId: formData.get('departmentId')?.toString() || '',
-                  admissionDate: formData.get('admissionDate')?.toString() || '',
+                  admissionYear: parseInt((formData.get('enrollmentNo')?.toString() || '').substring(0, 4)),
                   status: formData.get('status')?.toString() || 'active',
                   guardian: {
                     name: formData.get('guardianName')?.toString() || '',
@@ -1082,10 +1051,12 @@ const Student = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Admission Date</label>
+                <label className="block text-sm font-medium text-gray-700">Admission Year</label>
                 <input
-                  type="date"
-                  name="admissionDate"
+                  type="number"
+                  name="admissionYear"
+                  min="2000"
+                  max="2030"
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
@@ -1268,3 +1239,12 @@ const Student = () => {
 };
 
 export default Student;
+
+function getStudentStatus(student: StudentWithDetails): string {
+  if (student.isCancel) return 'Cancelled';
+  if (student.termClose) return 'Term Closed';
+  if (student.isComplete) {
+    return student.isPassAll ? 'Completed & Passed' : 'Completed';
+  }
+  return 'Active';
+}

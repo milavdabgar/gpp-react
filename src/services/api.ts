@@ -2,10 +2,18 @@ import axios from 'axios';
 import { User } from '../types/auth';
 import type { Student, CreateStudentDto } from '../types/api';
 
-interface ApiResponse<T> {
+export interface ApiResponse<T = any> {
   status: string;
+  message?: string;
   data: T;
   token?: string;
+}
+
+export interface GTUImportResponse {
+  results: Student[];
+  count: number;
+  errors?: { row: number; error: string }[];
+  warnings?: { row: number; warning: string }[];
 }
 
 interface ApiError {
@@ -187,7 +195,7 @@ export const studentApi = {
   },
 
   uploadStudentsCsv: async (formData: FormData) => {
-    const response = await api.post<ApiResponse<{ results: Student[]; count: number }>>('/students/upload-csv', formData, {
+    const response = await api.post<GTUImportResponse>('/students/upload-csv', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
