@@ -131,14 +131,19 @@ const Results = () => {
     try {
       setIsLoading(true);
       const response = await resultApi.importResults(formData) as ResultImportResponse;
-      showToast(`Successfully imported ${response.data.importedCount} results`, 'success');
+      
+      if (response.data.importedCount === 0) {
+        showToast(`No new results were imported - these results appear to have already been uploaded previously. Try uploading different results or check that you selected the correct file.`, 'warning');
+      } else {
+        showToast(`Successfully imported ${response.data.importedCount} results`, 'success');
+      }
 
       // Refresh both results and batches
       await fetchResults();
       await fetchBatches();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error importing results:', error);
-      showToast('Failed to import results', 'error');
+      showToast(error.response?.data?.message || 'Failed to import results', 'error');
     } finally {
       setIsLoading(false);
       // Reset the file input
