@@ -173,6 +173,16 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
             </div>
           </div>
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="text-sm text-gray-500">Current Backlog</div>
+            <div className="text-2xl font-bold text-orange-600">{result.currentBacklog || 0}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="text-sm text-gray-500">Total Backlog</div>
+            <div className="text-2xl font-bold text-red-600">{result.totalBacklog || 0}</div>
+          </div>
+        </div>
       </div>
 
       {/* Subject Results */}
@@ -195,18 +205,28 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Credits
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Grade
+                <th colSpan={3} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Theory Grade
+                </th>
+                <th colSpan={3} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Practical Grade
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Grade Points
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Credit Points
+                  Subject Grade
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
+              </tr>
+              <tr>
+                <th colSpan={3}></th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ESE</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PA/CA</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ESE</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PA/CA</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th colSpan={2}></th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -221,16 +241,40 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                     {subject.credits}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.grade)}`}>
-                      {subject.grade}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.theoryEseGrade || 'NA')}`}>
+                      {subject.theoryEseGrade || 'NA'}
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                    {getGradePoint(subject.grade)}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.theoryPaGrade || 'NA')}`}>
+                      {subject.theoryPaGrade || 'NA'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                    {(getGradePoint(subject.grade) * subject.credits).toFixed(1)}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.theoryTotalGrade || 'NA')}`}>
+                      {subject.theoryTotalGrade || 'NA'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalEseGrade || 'NA')}`}>
+                      {subject.practicalEseGrade || 'NA'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalPaGrade || 'NA')}`}>
+                      {subject.practicalPaGrade || 'NA'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalTotalGrade || 'NA')}`}>
+                      {subject.practicalTotalGrade || 'NA'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.grade)}`}>
+                      {subject.grade}
+                    </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-center">
                     {subject.isBacklog ? (

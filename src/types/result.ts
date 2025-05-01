@@ -4,6 +4,12 @@ export interface Subject {
     credits: number;
     grade: string;
     isBacklog: boolean;
+    theoryEseGrade?: string;
+    theoryPaGrade?: string;
+    theoryTotalGrade?: string;
+    practicalEseGrade?: string;
+    practicalPaGrade?: string;
+    practicalTotalGrade?: string;
   }
   
   export interface Result {
@@ -35,6 +41,8 @@ export interface Subject {
     uploadBatch: string;
     createdAt: string;
     updatedAt: string;
+    currentBacklog: number;
+    totalBacklog: number;
   }
   
   export interface UploadBatch {
