@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
-import { Download, Upload, Edit, Trash2, Search } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ChevronUp, ChevronDown, Download, Upload, Edit, Trash2, Search, Loader } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Role } from '../../types/auth';
 import { Department } from '../../types/department';
-
-
+import api from '../../services/api';
+import { userApi } from '../../services/userApi';
 
 interface AdminUser {
   // MongoDB document ID
@@ -23,6 +22,10 @@ type SortOrder = 'asc' | 'desc';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const usersPerPage = 100;
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,72 +39,48 @@ const Users: React.FC = () => {
   const { user: currentUser } = useAuth() as { user: AdminUser | null };
   const { showToast } = useToast();
 
-  // Fetch users and departments
-  useEffect(() => {
-    fetchUsers();
-    fetchDepartments();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await response.json();
-      setUsers(data.data.users);
+      setIsLoading(true);
+      const response = await userApi.getAllUsers(currentPage, usersPerPage);
+      setUsers(response.data.users);
+      setTotalPages(response.data.pagination.totalPages);
+      setTotalUsers(response.data.pagination.total);
     } catch (error) {
       console.error('Error fetching users:', error);
       showToast('Error fetching users', 'error');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, usersPerPage, showToast]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/departments', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch departments');
-      }
-      const { status, data } = await response.json();
-      if (status === 'success' && Array.isArray(data.departments)) {
-        setDepartments(data.departments);
+      const { data } = await api.get<{ status: string; data: { departments: Department[] } }>('/departments');
+      if (data.status === 'success' && Array.isArray(data.data.departments)) {
+        setDepartments(data.data.departments);
       }
     } catch (error) {
       console.error('Error fetching departments:', error);
       showToast('Error fetching departments', 'error');
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchDepartments();
+    fetchUsers();
+  }, [fetchDepartments, fetchUsers]);
 
   // Delete user
   const handleUpdateUser = async (updatedUser: Partial<AdminUser>) => {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`http://localhost:9000/api/admin/users/${selectedUser._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(updatedUser)
-      });
-
-      if (response.ok) {
-        const { data } = await response.json();
-        setUsers(users.map(u => u._id === data.user._id ? data.user : u));
-        setShowEditModal(false);
-        setSelectedUser(null);
-        showToast('User updated successfully', 'success');
-      } else {
-        showToast('Failed to update user', 'error');
-      }
+      await userApi.updateUser(selectedUser._id, updatedUser);
+      await fetchUsers(); // Refresh the list after update
+      setShowEditModal(false);
+      setSelectedUser(null);
+      showToast('User updated successfully', 'success');
     } catch (error) {
       console.error('Error updating user:', error);
       showToast('Error updating user', 'error');
@@ -112,13 +91,8 @@ const Users: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      await fetch(`http://localhost:9000/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      setUsers(users.filter(user => user._id !== userId));
+      await userApi.deleteUser(userId);
+      await fetchUsers(); // Refresh the list after deletion
       showToast('User deleted successfully', 'success');
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -128,27 +102,10 @@ const Users: React.FC = () => {
 
   const handleAddUser = async (userData: Partial<AdminUser>) => {
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add user');
-      }
-
-      const { data } = await response.json();
-      if (data && data.user) {
-        setUsers([...users, data.user]);
-        setShowAddModal(false);
-        showToast('User added successfully', 'success');
-      } else {
-        throw new Error('Invalid response format');
-      }
+      await userApi.createUser(userData);
+      await fetchUsers(); // Refresh the list after adding
+      setShowAddModal(false);
+      showToast('User added successfully', 'success');
     } catch (error) {
       console.error('Error adding user:', error);
       showToast(`Error adding user: ${error}`, 'error');
@@ -164,22 +121,9 @@ const Users: React.FC = () => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users/import', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        showToast('Users imported successfully', 'success');
-        // Refresh users list after import
-        fetchUsers();
-      } else {
-        const error = await response.text();
-        showToast(`Import failed: ${error}`, 'error');
-      }
+      await userApi.importUsers(formData);
+      showToast('Users imported successfully', 'success');
+      await fetchUsers(); // Refresh users list after import
     } catch (error) {
       showToast(`Error importing users: ${error}`, 'error');
     }
@@ -188,19 +132,7 @@ const Users: React.FC = () => {
   // Export CSV
   const handleExport = async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users/export', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        showToast(`Export failed: ${error}`, 'error');
-        return;
-      }
-
-      const blob = await response.blob();
+      const blob = await userApi.exportUsers();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -230,7 +162,7 @@ const Users: React.FC = () => {
   const roles = ['all', ...Array.from(new Set(users.flatMap(user => user.roles))).sort()];
 
   // Filter and sort users
-  const filteredUsers = users
+  const filteredAndSortedUsers = users
     .filter((user: AdminUser) => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = (
@@ -322,9 +254,40 @@ const Users: React.FC = () => {
         </div>
       </div>
 
-      {/* Users table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      {/* Table */}
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <div className="flex justify-between items-center p-4">
+          <div className="text-gray-600">
+            {isLoading ? (
+              <div className="flex items-center">
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+                Loading users...
+              </div>
+            ) : (
+              `Showing ${users.length} of ${totalUsers} users`
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+        <table className="min-w-full table-auto divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th
@@ -365,7 +328,7 @@ const Users: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredUsers.map((user: AdminUser) => (
+            {filteredAndSortedUsers.map((user: AdminUser) => (
               <tr key={user._id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{user.name}</div>
