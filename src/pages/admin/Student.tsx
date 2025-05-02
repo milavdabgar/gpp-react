@@ -118,7 +118,6 @@ const Student = () => {
   };
 
   const [users, setUsers] = useState<User[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithDetails | null>(null);
 
   const statusOptions = [
@@ -155,16 +154,26 @@ const Student = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedBatch, setSelectedBatch] = useState<string>('all');
+  const [selectedSemester, setSelectedSemester] = useState<string>('all');
+  const [selectedSemesterStatus, setSelectedSemesterStatus] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [departments, setDepartments] = useState<Array<{ _id: string; name: string }>>([]);
   const { user: currentUser } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalStudents, setTotalStudents] = useState(0);
   const studentsPerPage = 100;
 
-  // Fetch students when page changes
+  // Fetch departments on component mount
   useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  // Fetch students when filters change
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
     fetchStudentData();
-  }, [currentPage]);
+  }, [currentPage, searchTerm, selectedDepartment, selectedBatch, selectedSemester, selectedSemesterStatus, selectedCategory, sortField, sortOrder]);
 
   const fetchStudentData = async () => {
     setIsLoading(true);
@@ -175,9 +184,9 @@ const Student = () => {
         searchTerm,
         selectedDepartment !== 'all' ? selectedDepartment : undefined,
         selectedBatch !== 'all' ? selectedBatch : undefined,
-        undefined, // semester
-        undefined, // semesterStatus
-        undefined, // category
+        selectedSemester !== 'all' ? parseInt(selectedSemester) : undefined,
+        selectedSemesterStatus !== 'all' ? selectedSemesterStatus : undefined,
+        selectedCategory !== 'all' ? selectedCategory : undefined,
         sortField === 'enrollmentNo' ? 'enrollmentNo' :
         sortField === 'batch' ? 'batch' :
         sortField === 'department' ? 'departmentId' :
@@ -469,41 +478,76 @@ const Student = () => {
       </div>
 
       {/* Search and filter */}
-      <div className="mb-6 flex gap-4">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            placeholder="Search students..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border rounded-md pl-10"
-          />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border rounded-md pl-10"
+            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
         </div>
-        <select
-          value={selectedDepartment}
-          onChange={(e) => setSelectedDepartment(e.target.value)}
-          className="px-4 py-2 border rounded-md"
-        >
-          <option value="all">All Departments</option>
-          {departments.map(dept => (
-            <option key={dept._id} value={dept._id}>
-              {dept.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={selectedBatch}
-          onChange={(e) => setSelectedBatch(e.target.value)}
-          className="px-4 py-2 border rounded-md"
-        >
-          <option value="all">All Batches</option>
-          {batchOptions.map(batch => (
-            <option key={batch} value={batch}>
-              {batch}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap gap-4">
+          <select
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+            className="px-4 py-2 border rounded-md min-w-[200px]"
+          >
+            <option value="all">All Departments</option>
+            {departments.map(dept => (
+              <option key={dept._id} value={dept._id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedBatch}
+            onChange={(e) => setSelectedBatch(e.target.value)}
+            className="px-4 py-2 border rounded-md min-w-[150px]"
+          >
+            <option value="all">All Batches</option>
+            {batchOptions.map(batch => (
+              <option key={batch} value={batch}>{batch}</option>
+            ))}
+          </select>
+          <select
+            value={selectedSemester}
+            onChange={(e) => setSelectedSemester(e.target.value)}
+            className="px-4 py-2 border rounded-md min-w-[150px]"
+          >
+            <option value="all">All Semesters</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+              <option key={sem} value={sem}>Semester {sem}</option>
+            ))}
+          </select>
+          <select
+            value={selectedSemesterStatus}
+            onChange={(e) => setSelectedSemesterStatus(e.target.value)}
+            className="px-4 py-2 border rounded-md min-w-[180px]"
+          >
+            <option value="all">All Semester Status</option>
+            <option value="CLEARED">Cleared</option>
+            <option value="PENDING">Pending</option>
+            <option value="NOT_ATTEMPTED">Not Attempted</option>
+          </select>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border rounded-md min-w-[150px]"
+          >
+            <option value="all">All Categories</option>
+            <option value="OPEN">Open</option>
+            <option value="SC">SC</option>
+            <option value="ST">ST</option>
+            <option value="SEBC">SEBC</option>
+            <option value="EWS">EWS</option>
+            <option value="TFWS">TFWS</option>
+          </select>
+        </div>
       </div>
 
       {/* Students table */}
