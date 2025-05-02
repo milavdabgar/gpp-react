@@ -227,11 +227,11 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
               </tr>
               <tr>
                 <th colSpan={3}></th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory External (70 marks)">E</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory Mid-term/PA (30 marks)">M</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory External (70 marks)">ESE (E)</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory Mid-term/PA (30 marks)">PA/CA (M)</th>
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory Total (100 marks)">Total</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical Internal/PA (20 marks)">I</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical End Term Viva (30 marks)">V</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical Internal/PA (20 marks)">PA/CA (I)</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical End Term Viva (30 marks)">ESE (V)</th>
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical Total (50 marks)">Total</th>
                 <th colSpan={2}></th>
               </tr>
