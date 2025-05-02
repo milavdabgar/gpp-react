@@ -160,7 +160,38 @@ const GradeHistoryView: React.FC<GradeHistoryViewProps> = ({ studentId, enrollme
       </div>
 
       <div className="space-y-6 p-6">
-      {/* Summary Card */}
+        {/* Student Information */}
+        {results.length > 0 && (
+          <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Student Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                  <div className="text-sm text-gray-500">Enrollment Number</div>
+                  <div className="font-medium">{results[0].st_id}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Name</div>
+                  <div className="font-medium">{results[0].name}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Branch</div>
+                  <div className="font-medium">{results[0].branchName}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Institute</div>
+                  <div className="font-medium">{results[0].instName}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Course</div>
+                  <div className="font-medium">{results[0].courseName}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Summary Card */}
       <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4">Academic Performance Summary</h2>
