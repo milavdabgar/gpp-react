@@ -220,12 +220,12 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
               </tr>
               <tr>
                 <th colSpan={3}></th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ESE</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PA/CA</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ESE</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PA/CA</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory External (70 marks)">E</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory Mid-term/PA (30 marks)">M</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Theory Total (100 marks)">Total</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical Internal/PA (20 marks)">I</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical End Term Viva (30 marks)">V</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Practical Total (50 marks)">Total</th>
                 <th colSpan={2}></th>
               </tr>
             </thead>
@@ -257,13 +257,13 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalEseGrade || 'NA')}`}>
-                      {subject.practicalEseGrade || 'NA'}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalPaGrade || 'NA')}`}>
+                      {subject.practicalPaGrade || 'NA'}
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalPaGrade || 'NA')}`}>
-                      {subject.practicalPaGrade || 'NA'}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColorClass(subject.practicalVivaGrade || 'NA')}`}>
+                      {subject.practicalVivaGrade || 'NA'}
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
