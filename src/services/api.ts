@@ -203,8 +203,20 @@ export const studentApi = {
     return response.data;
   },
 
-  getAllStudents: async (page = 1, limit = 100) => {
-    console.log('Fetching students with pagination...');
+  getAllStudents: async (page = 1, limit = 100, search?: string, department?: string, batch?: string, semester?: number, semesterStatus?: string, category?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(department && { department }),
+      ...(batch && { batch }),
+      ...(semester && { semester: semester.toString() }),
+      ...(semesterStatus && { semesterStatus }),
+      ...(category && { category }),
+      ...(sortBy && { sortBy }),
+      ...(sortOrder && { sortOrder })
+    });
+
     const response = await api.get<ApiResponse<{ 
       students: Student[],
       pagination: {
@@ -213,10 +225,7 @@ export const studentApi = {
         total: number;
         totalPages: number;
       }
-    }>>('/students', {
-      params: { page, limit }
-    });
-    console.log('Student response:', response.data);
+    }>>(`/students?${params}`);
     return response.data;
   },
 

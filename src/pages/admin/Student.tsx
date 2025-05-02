@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api, { studentApi } from '../../services/api';
 
-type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionYear';
+type SortField = 'enrollmentNo' | 'batch' | 'department' | 'admissionYear' | 'name' | 'convoYear';
 type SortOrder = 'asc' | 'desc';
 
 interface User {
@@ -169,7 +169,23 @@ const Student = () => {
   const fetchStudentData = async () => {
     setIsLoading(true);
     try {
-      const studentResponse = await studentApi.getAllStudents(currentPage, studentsPerPage);
+      const studentResponse = await studentApi.getAllStudents(
+        currentPage,
+        studentsPerPage,
+        searchTerm,
+        selectedDepartment !== 'all' ? selectedDepartment : undefined,
+        selectedBatch !== 'all' ? selectedBatch : undefined,
+        undefined, // semester
+        undefined, // semesterStatus
+        undefined, // category
+        sortField === 'enrollmentNo' ? 'enrollmentNo' :
+        sortField === 'batch' ? 'batch' :
+        sortField === 'department' ? 'departmentId' :
+        sortField === 'admissionYear' ? 'admissionYear' :
+        sortField === 'name' ? 'userId.name' :
+        sortField === 'convoYear' ? 'convoYear' : 'enrollmentNo',
+        sortOrder
+      );
       const studentsWithDetails = studentResponse.data.students.map((s: any) => ({
         ...s,
         // Properly handle the populated userId object
@@ -189,6 +205,16 @@ const Student = () => {
       showToast('Error fetching student data', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get<{ status: string; data: { departments: Department[] } }>('/departments');
+      setDepartments(response.data.data.departments);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      showToast('Failed to fetch departments', 'error');
     }
   };
 
@@ -275,21 +301,6 @@ const Student = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
       showToast('Failed to fetch users', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get<{ status: string; data: { departments: Department[] } }>('/departments');
-      setDepartments(response.data.data.departments);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-      setIsLoading(false);
-      showToast('Failed to fetch departments', 'error');
     }
   };
 
@@ -396,51 +407,18 @@ const Student = () => {
       setSortField(field);
       setSortOrder('asc');
     }
+    setCurrentPage(1); // Reset to first page when sorting changes
+    fetchStudentData();
   };
 
-  const sortedStudents = students.sort((a, b) => {
-    let compareA: string | number = '';
-    let compareB: string | number = '';
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when search/filter/sort changes
+      fetchStudentData();
+    }, 300);
 
-    switch (sortField) {
-      case 'enrollmentNo':
-        compareA = a.enrollmentNo;
-        compareB = b.enrollmentNo;
-        break;
-      case 'batch':
-        compareA = a.batch;
-        compareB = b.batch;
-        break;
-      case 'department':
-        compareA = a.department?.name || '';
-        compareB = b.department?.name || '';
-        break;
-      case 'admissionYear':
-        compareA = a.admissionYear || 0;
-        compareB = b.admissionYear || 0;
-        break;
-    }
-
-    if (compareA < compareB) return sortOrder === 'asc' ? -1 : 1;
-    if (compareA > compareB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  // Filter students
-  const filteredStudents = sortedStudents.filter(s => {
-    const matchesSearch = (
-      s.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.enrollmentNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.batch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.department?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const matchesDepartment = selectedDepartment === 'all' || s.department?._id === selectedDepartment;
-    const matchesBatch = selectedBatch === 'all' || s.batch === selectedBatch;
-
-    return matchesSearch && matchesDepartment && matchesBatch;
-  });
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, selectedDepartment, selectedBatch, sortField, sortOrder]);
 
   return (
     <div className="p-6">
@@ -540,14 +518,26 @@ const Student = () => {
                   sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
                 )}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th onClick={() => handleSort('name')} 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                 Name
+                {sortField === 'name' && (
+                  sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
+                )}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th onClick={() => handleSort('admissionYear')} 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                 Admission Year
+                {sortField === 'admissionYear' && (
+                  sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
+                )}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th onClick={() => handleSort('convoYear')} 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                 Convo Year
+                {sortField === 'convoYear' && (
+                  sortOrder === 'asc' ? <ChevronUp className="inline ml-1 h-4 w-4" /> : <ChevronDown className="inline ml-1 h-4 w-4" />
+                )}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -564,14 +554,14 @@ const Student = () => {
                   Loading...
                 </td>
               </tr>
-            ) : filteredStudents.length === 0 ? (
+            ) : students.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-4 text-center">
                   No students found
                 </td>
               </tr>
             ) : (
-              filteredStudents.map((student) => (
+              students.map((student: StudentWithDetails) => (
                 <tr key={student._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {student.enrollmentNo}
