@@ -42,7 +42,15 @@ const Users: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await userApi.getAllUsers(currentPage, usersPerPage);
+      const response = await userApi.getAllUsers(
+        currentPage,
+        usersPerPage,
+        searchTerm,
+        selectedRole !== 'all' ? selectedRole : undefined,
+        selectedDepartment !== 'all' ? selectedDepartment : undefined,
+        sortField,
+        sortOrder
+      );
       setUsers(response.data.users);
       setTotalPages(response.data.pagination.totalPages);
       setTotalUsers(response.data.pagination.total);
@@ -52,7 +60,7 @@ const Users: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, usersPerPage, showToast]);
+  }, [currentPage, usersPerPage, searchTerm, selectedRole, sortField, sortOrder, showToast]);
 
   const fetchDepartments = useCallback(async () => {
     try {
@@ -161,26 +169,25 @@ const Users: React.FC = () => {
   const departmentOptions = ['all', ...departments.map(dept => dept._id)];
   const roles = ['all', ...Array.from(new Set(users.flatMap(user => user.roles))).sort()];
 
-  // Filter and sort users
-  const filteredAndSortedUsers = users
-    .filter((user: AdminUser) => {
-      const searchTermLower = searchTerm.toLowerCase();
-      const matchesSearch = (
-        (user.name || '').toLowerCase().includes(searchTermLower) ||
-        (user.email || '').toLowerCase().includes(searchTermLower)
-      );
-      const matchesRole = selectedRole === 'all' || user.roles.includes(selectedRole as Role);
-      const matchesDepartment = selectedDepartment === 'all' || user.department === selectedDepartment;
-      
-      return matchesSearch && matchesRole && matchesDepartment;
-    })
-    .sort((a, b) => {
-      const aValue = (a[sortField] || '').toLowerCase();
-      const bValue = (b[sortField] || '').toLowerCase();
-      return sortOrder === 'asc'
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    });
+  // Handle search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when search changes
+      fetchUsers();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Handle role filter changes
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
+    fetchUsers();
+  }, [selectedRole, selectedDepartment]);
+
+  // Handle sort changes
+  useEffect(() => {
+    fetchUsers();
+  }, [sortField, sortOrder]);
 
   return (
     <div className="p-6">
@@ -328,7 +335,7 @@ const Users: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSortedUsers.map((user: AdminUser) => (
+            {users.map((user: AdminUser) => (
               <tr key={user._id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{user.name}</div>

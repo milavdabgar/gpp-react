@@ -26,8 +26,17 @@ interface UserResponse {
 }
 
 export const userApi = {
-  getAllUsers: async (page: number, limit: number) => {
-    const response = await api.get<UserResponse>(`/admin/users?page=${page}&limit=${limit}`);
+  getAllUsers: async (page: number, limit: number, search?: string, role?: string, department?: string, sortBy?: string, sortOrder?: 'asc' | 'desc') => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(role && { role }),
+      ...(department && { department }),
+      ...(sortBy && { sortBy }),
+      ...(sortOrder && { sortOrder })
+    });
+    const response = await api.get<UserResponse>(`/admin/users?${params}`);
     return response.data;
   },
   
