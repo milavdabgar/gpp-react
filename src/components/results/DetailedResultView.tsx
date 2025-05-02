@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Book, Check, X, Award, Info, Download, Printer 
 import { resultApi } from '../../services/api';
 import { Result, Subject } from '../../types/result';
 import { useToast } from '../../context/ToastContext';
+import GradeHistoryView from './GradeHistoryView';
 
 interface DetailedResultViewProps {
   resultId: string;
@@ -12,6 +13,7 @@ interface DetailedResultViewProps {
 const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClose }) => {
   const [result, setResult] = useState<Result | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showGradeHistory, setShowGradeHistory] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -90,6 +92,15 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
     );
   }
 
+  if (showGradeHistory && result) {
+    return (
+      <GradeHistoryView 
+        studentId={result.st_id}
+        onClose={() => setShowGradeHistory(false)}
+      />
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden print:shadow-none print:border-none">
       {/* Header with actions */}
@@ -107,6 +118,13 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
           >
             <Printer className="h-4 w-4 mr-1" />
             Print
+          </button>
+          <button
+            onClick={() => setShowGradeHistory(true)}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Award className="h-4 w-4 mr-1" />
+            Grade History
           </button>
           {onClose && (
             <button
@@ -153,7 +171,7 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
       {/* Result Summary */}
       <div className="p-6 border-b border-gray-200 bg-blue-50">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Result Summary</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="text-sm text-gray-500">SPI</div>
             <div className="text-2xl font-bold text-blue-600">{result.spi.toFixed(2)}</div>
@@ -163,18 +181,6 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
             <div className="text-2xl font-bold text-indigo-600">{result.cpi.toFixed(2)}</div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-sm text-gray-500">Credits Earned</div>
-            <div className="text-2xl font-bold text-green-600">{result.earnedCredits}/{result.totalCredits}</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-sm text-gray-500">Result</div>
-            <div className={`text-2xl font-bold ${result.result === 'PASS' ? 'text-green-600' : 'text-red-600'}`}>
-              {result.result}
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="text-sm text-gray-500">Current Backlog</div>
             <div className="text-2xl font-bold text-orange-600">{result.currentBacklog || 0}</div>
           </div>
@@ -183,6 +189,7 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
             <div className="text-2xl font-bold text-red-600">{result.totalBacklog || 0}</div>
           </div>
         </div>
+
       </div>
 
       {/* Subject Results */}
@@ -297,23 +304,7 @@ const DetailedResultView: React.FC<DetailedResultViewProps> = ({ resultId, onClo
 
         {/* Additional Information */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="font-medium text-gray-900 mb-2">Exam Details</h4>
-            <div className="space-y-2">
-              <div className="grid grid-cols-2">
-                <div className="text-sm text-gray-500">Exam Type</div>
-                <div className="text-sm">{result.extype}</div>
-              </div>
-              <div className="grid grid-cols-2">
-                <div className="text-sm text-gray-500">Exam ID</div>
-                <div className="text-sm">{result.examid}</div>
-              </div>
-              <div className="grid grid-cols-2">
-                <div className="text-sm text-gray-500">Attempts</div>
-                <div className="text-sm">{result.trials === 1 ? 'First Attempt' : `${result.trials} Attempts`}</div>
-              </div>
-            </div>
-          </div>
+
 
           {result.remark && (
             <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">

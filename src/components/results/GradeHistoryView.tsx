@@ -8,9 +8,10 @@ import DetailedResultView from './DetailedResultView';
 interface GradeHistoryViewProps {
   studentId: string;
   enrollmentNo?: string;
+  onClose?: () => void;
 }
 
-const GradeHistoryView: React.FC<GradeHistoryViewProps> = ({ studentId, enrollmentNo }) => {
+const GradeHistoryView: React.FC<GradeHistoryViewProps> = ({ studentId, enrollmentNo, onClose }) => {
   const [results, setResults] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
@@ -141,7 +142,24 @@ const GradeHistoryView: React.FC<GradeHistoryViewProps> = ({ studentId, enrollme
   }
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+      {/* Header with actions */}
+      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">Grade History</h2>
+        <div className="flex items-center space-x-2">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Close
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-6 p-6">
       {/* Summary Card */}
       <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
         <div className="p-6">
@@ -266,6 +284,7 @@ const GradeHistoryView: React.FC<GradeHistoryViewProps> = ({ studentId, enrollme
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
